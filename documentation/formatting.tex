@@ -1,0 +1,88 @@
+\usepackage[a5paper,margin=0.5in]{geometry}
+
+%% Header
+\usepackage{fancyhdr,lastpage}
+\usepackage[mmddyyyy]{datetime}
+\renewcommand{\dateseparator}{/}
+\fancypagestyle{plain}{
+    \fancyhf{} %Clear Everything.
+    \lhead{ \authorship }
+    \chead{ COMS E6735 }
+    \rhead{ \jobname\ Page \thepage\ of \pageref{LastPage} }
+    \setlength{\headheight}{30pt}
+    \setlength{\footskip}{24pt}
+    \renewcommand{\headrulewidth}{1pt} %0pt for no rule, 2pt thicker etc...
+    \renewcommand{\footrulewidth}{0pt}
+}
+\pagestyle{plain}
+
+%% URLs
+\usepackage{url}
+
+%% Lists
+\usepackage[shortlabels]{enumitem}
+ % Create environment that allows full-width text within list
+\makeatletter
+\newenvironment{fullwidth}
+{\par%
+    \setlength{\@totalleftmargin}{0pt}%
+    \setlength{\linewidth}{\hsize}%
+    \list{}{\setlength{\leftmargin}{0pt}}
+\item\relax}
+    {\endlist}
+    \makeatother
+
+%% Non-floating Captions
+\usepackage{capt-of}
+
+%% Tables 
+\usepackage{booktabs}
+\usepackage{longtable}
+
+%% CSV Files
+\usepackage{csvsimple}
+
+%% Graphs
+\usepackage{pgfplots}
+\pgfplotsset{width=10cm,compat=1.7}
+\pgfplotsset{every axis legend/.append style={
+             at={(0,0)},
+                 anchor=north east}}
+
+%% Code listings
+\usepackage{minted}
+\usepackage{listings}
+\usepackage{color} % for colored solution
+\usepackage{caption}
+\setlength{\belowcaptionskip}{10pt plus 5pt minus 0pt}
+
+% Needed to use \autoref with listings from minted
+\providecommand*{\listingautorefname}{Listing}
+% Command for referencing listings
+\newcommand*{\listingref}[1]{\specialcell[r]{\nameref*{#1} \\ Source Code: \hyperref[{#1}]{\autoref*{#1}}}}
+
+% This will allow us to use file names with
+% underscores in below
+\AtBeginDocument{
+    \catcode`_=12
+    \begingroup\lccode`~=`_
+    \lowercase{\endgroup\let~}\sb
+    \mathcode`_="8000
+}
+
+% Custom macro for code listings from files
+% #1 - language e.g. ocaml
+% #2 - filename e.g. ../src/vislang.ml
+% #3 - label e.g. src/top
+% #4 - description e.g. Top Level
+% note: filename will be pretty printed as vislang/src/*
+%       instead of ../src/*
+\newcommand{\srccode}[2]{
+    \inputminted[linenos,fontsize=\footnotesize,frame=single,label=#2]{#1}{#2}
+}
+
+%% Maths
+\usepackage{amsmath}
+
+%% Patches (because this distro has an old version of LaTeX
+\usepackage{fixltx2e}
