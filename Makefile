@@ -5,6 +5,7 @@
 # Uses TODO and DONE flags in files
 .PHONY: status
 status:
+	@echo "STATUS $${PWD##*/}/*.*"
 	@\
 for file in *.*; do \
 	#if [ $$file == *template* ]; then \

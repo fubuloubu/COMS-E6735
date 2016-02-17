@@ -12,7 +12,7 @@
 # Clean rule to remove intermediates 
 # produced by LaTeX and relevant libraries
 clean:
-	@echo " CLEAN latex"
+	@echo " CLEAN documentation"
 	@rm -f *.pdf*
 	@rm -f *.log
 	@rm -f *.aux
