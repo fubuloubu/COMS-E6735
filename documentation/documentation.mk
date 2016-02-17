@@ -15,6 +15,7 @@ clean:
 	@echo " CLEAN documentation"
 	@rm -f *.pdf*
 	@rm -f *.log
+	@rm -f *.out
 	@rm -f *.aux
 	@rm -f *.pyg
 	@rm -rf _minted-*
