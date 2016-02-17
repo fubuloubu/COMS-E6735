@@ -1,0 +1,60 @@
+\subsection{Anticipated Methods}
+In order to successfully ascertain the location of fingers on the fretting hand, 
+and the occurence of plucks on the picking hand of performer,
+a variety of computer vision techniques must be employed.
+The flow for note identification would be as follows:
+locate fretboard using feature identification,
+scale and rotate fretboard to align to standard location,
+determine string plucks of picking hand using motion detection against standard location,
+determine finger location of fretting hand using gesture recognition.
+\par
+Although the first two items can theoretically be done only once per video to maintain the standard location, 
+the reality is that performers tend to move the instrument at least subtlely while performing,
+so the scaling and rotation operations will need to be adjusted continually.
+Luckily, once the feature identification of the fretboard is obtained to a sufficient degree initially,
+the movement between shots of the fretboard is typically subtle enough that it can continue being tracked,
+potentially using standard motion tracking technicques instead of image tracking
+(if that is found to be more performance effective).
+\par
+If time permits, it may be acceptable to hybridize this approach using some audio recognition
+or visual reconstruction of audio data using vibration (\url{http://people.csail.mit.edu/mrub/VisualMic}).
+This could be performed to identify specific notes, or simply to identify when a picking event occurs.
+This hybrid approach will improve overall correctness and robustness of results that a user might expect.
+Audio recognition and hybridization with computer vision techniques is however outside the scope of this project.
+
+\subsection{Anticipated Results}
+Using a small collection of different ~2 min video files
+(approximately 50 total, with 15 in the control camp),
+the system will be vetted under a variety of circumstances:
+different lighting conditions (5),
+different instruments (10),
+and different performers (20).
+The system should be designed to adequetely handle these different circumstances
+without requiring many enviroment-specific processing directives.
+
+The video files will be reviewed by hand prior to testing in order to produce the desired output,
+and then the obtained output of the system will be measured against the desired output
+in order to obtain a measure of correctness.
+
+The overall goal for correctness would be 90\%.
+This is an agressive goal for a computer vision application,
+especially for one measuring the location of fingers on a hand.
+
+The test file outputs will be measured against the desired outputs occurence by occurence,
+e.g. if a note was missed or a phantom note was detected in the middle of a recording,
+that occurence will be isolated from the surrounding occurences and not cause further false negatives.
+The overall correctness rate will be the sum of the percentage of misses, phantom counts, and differences
+compared to the number of overall notes in the sample.
+\par
+The system will be constructed as a command line utility;
+operating on an input video file of a specific format,
+then printing out the resultant tabulature to standard output
+(which may be piped to a file).
+
+Initial prototyping work will be done using Python.
+However, as the project progresses a move to C++ will be done
+in order to speed up the processing of the utility.
+The performance goal for this application would be on order of
+the running time of the video.
+A system that can operate in real time would be considered succesful
+and open up a larger array of possibilities and use cases.

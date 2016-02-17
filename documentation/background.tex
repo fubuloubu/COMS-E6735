@@ -1,0 +1,34 @@
+A review of the literature revealed unsurprisingly that a project concerning this topic was unprecented.
+Similar systems typically utilize pure audio recognition with correctness approaching only 85\%,
+and can typically only recognize events such as chords, due to the difficultly identifying individual sounds
+from an arrangement (\url{https://chordify.net}, \url{http://play.riffstation.com}).
+Additionally, these systems are challenged when slowing down the input waveform as that will change the central
+tone present (in reality, this is possible, but only with major mathematical formulas tracking the slowdown
+and it's effect on the central tone being identified).
+A video system to identify notes would have the benefit that controlling the speed would not affect the
+ability to correctly identify musical events, although this means the system will be unable to identify
+the exact tone of that note.
+However, the system should find use in a amateur training scenario where it is often hard to identify
+the notes being played in a specific song, or in a practice scenario where it might be useful to
+record the tabulature of a session instead of having to review a practice session to identify a specific
+progression that was played one time.
+\par
+A system of this complexity will have many components that must come together to obtain the desired result.
+Firstly, it is advantageous that fretboard and plucking/fretting hands be in a standard location in order
+to work from a baseline when using other techniques (instead of searching for hand locations).
+Fortunately, there already exists well-used algorithms for feature identification and matching
+(reference OpenCV Documentation: \url{http://docs.opencv.org/trunk/dc/dc3/tutorial_py_matcher.html}).
+The next step would be to segment out the video into fretting and plucking hands in order to process
+those individual actions in context of each other.
+When a note is plucked, we can detect a sharp movement of the hand and, to a lesser extent,
+the vibrating string, and use this data to detect which string was plucked in a shot.
+Finally, to accurately detect which specific note was struck when the pluck occurred,
+it is necessary to know the locations of the fingers on the fretboard,
+including whether a finger was depressed on the fretboard or muting a string.
+The literature shows an algorithm for detection of hand gestures
+(\url{http://web.mst.edu/~yinz/Papers/CVPR2015Hands.pdf})
+which would form a prior basis for identifying finger locations on the fretboard.
+The system would track the location of fingers over time,
+then extract the note at exact the point in time when the pluck occurs and return
+that as the note played.
+The sequence of these notes would form the output of the program.
