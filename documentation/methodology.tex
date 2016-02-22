@@ -1,60 +1,71 @@
 \subsection{Anticipated Methods}
-In order to successfully ascertain the location of fingers on the fretting hand, 
-and the occurence of plucks on the picking hand of performer,
-a variety of computer vision techniques must be employed.
-The flow for note identification would be as follows:
-locate fretboard using feature identification,
-scale and rotate fretboard to align to standard location,
-determine string plucks of picking hand using motion detection against standard location,
-determine finger location of fretting hand using gesture recognition.
+A system of this complexity will have many components that must come together to obtain the desired result.
+Firstly, it is advantageous that fretboard and plucking/fretting hands be in a standard location in order
+to work from a baseline when using other techniques (instead of searching for hand locations).
+Fortunately, there already exists well-used algorithms for feature identification and image transformation
+(reference OpenCV Documentation: \url{http://docs.opencv.org/trunk/dc/dc3/tutorial_py_matcher.html}).
 \par
-Although the first two items can theoretically be done only once per video to maintain the standard location, 
+Although this can theoretically be done only once per video to maintain the standard location, 
 the reality is that performers tend to move the instrument at least subtlely while performing,
 so the scaling and rotation operations will need to be adjusted continually.
-Luckily, once the feature identification of the fretboard is obtained to a sufficient degree initially,
-the movement between shots of the fretboard is typically subtle enough that it can continue being tracked,
-potentially using standard motion tracking technicques instead of image tracking
-(if that is found to be more performance effective).
+Once the feature identification of the fretboard is obtained to a sufficient degree initially,
+the movement between shots of the fretboard is typically subtle enough that it can continue being tracked easily,
+potentially using standard motion tracking technicques instead of continued feature identification
+(if that is found to be more efficient).
 \par
-If time permits, it may be acceptable to hybridize this approach using some audio recognition
-or visual reconstruction of audio data using vibration (\url{http://people.csail.mit.edu/mrub/VisualMic}).
-This could be performed to identify specific notes, or simply to identify when a picking event occurs.
-This hybrid approach will improve overall correctness and robustness of results that a user might expect.
-Audio recognition and hybridization with computer vision techniques is however outside the scope of this project.
+
+The next step would be to segment out the video into fretting and plucking hands in order to process those individual actions in context.
+When a note is plucked by the plucking hand, we can detect a sharp movement of the hand and the vibrating string,
+and we may use this data to detect which string was plucked in a shot.
+The initial approach will be to identify the vibrating string based on motion detection of the string in the shot.
+It may turn out to be more effective to combine this analysis with analysis on the hand motion (magintude of hand/finger movement)
+of the plucking hand to obtain an accurate indication of the pluck events.
+\par
+
+Finally, to accurately detect which specific note was produced when the pluck occurred,
+it is necessary to know the locations of the fingers and palm of the fretting hand on the fretboard,
+including whether a finger was depressed on the fretboard, the string was left open, or muting occurred.
+Research shows that a multi-step algorithm for indentifying hand and finger positions exists
+%(\url{http://web.mst.edu/~yinz/Papers/CVPR2015Hands.pdf})
+(\url{http://www.sciencedirect.com/science/article/pii/S0031320315002745/}, 
+\url{http://www.scopus.com/record/display.uri?eid=2-s2.0-0036857028&origin=inward&txGid=0})
+Such algorithms would form a prior basis for identifying finger locations on the fretboard.
+The system would track the location of fingers over time,
+then extract the note at exact the point in time when the pluck occurs and return that as the note played.
+The sequence of these notes would form the output of the program.
 
 \subsection{Anticipated Results}
-Using a small collection of different ~2 min video files
-(approximately 50 total, with 15 in the control camp),
-the system will be vetted under a variety of circumstances:
+Results will be prototyped and verified via a small collection of ~2 min video files
+(approximately 50 total).
+The system will be vetted under a variety of circumstances:
 different lighting conditions (5),
 different instruments (10),
 and different performers (20).
-The system should be designed to adequetely handle these different circumstances
-without requiring many enviroment-specific processing directives.
-
-The video files will be reviewed by hand prior to testing in order to produce the desired output,
-and then the obtained output of the system will be measured against the desired output
-in order to obtain a measure of correctness.
-
+The system will be designed to adequetely handle these different circumstances
+without requiring enviroment-specific processing directives.
+\par
+The video files will be reviewed prior to testing and the desired output will be produced by hand.
+The obtained output of the system will be measured against the desired output via the following:
+\begin{itemize}
+    \item Each note occurence in the desired output will be matched to a corresponding note in the obtained output
+    \item If an incorrect note occurs in the obtained output, the algorithm will check ahead to see if further
+        matches exist.
+    \item When two sections of correct notes occur surrounding a section of incorrect notes, those will
+        be analyzed to obtain the difference (missing note, added note or wrong note).
+    \item The output correctness factor will be number of matches minus the number of additions and misses
+        over the percentage of notes in the desired output (floored at zero percent correct).
+\end{itemize}
+\par
 The overall goal for correctness would be 90\%.
 This is an agressive goal for a computer vision application,
 especially for one measuring the location of fingers on a hand.
-
-The test file outputs will be measured against the desired outputs occurence by occurence,
-e.g. if a note was missed or a phantom note was detected in the middle of a recording,
-that occurence will be isolated from the surrounding occurences and not cause further false negatives.
-The overall correctness rate will be the sum of the percentage of misses, phantom counts, and differences
-compared to the number of overall notes in the sample.
 \par
-The system will be constructed as a command line utility;
-operating on an input video file of a specific format,
-then printing out the resultant tabulature to standard output
-(which may be piped to a file).
-
+The system will be constructed as a command line utility; operating on an input video file of a specific format,
+then printing out the resultant tabulature to standard output (which may be piped to a file).
+For verification, the obtained output of the program will be saved to a file and compared using the algorithm
+described above to a corresponding desired output file that will be constructed by hand.
+\par
 Initial prototyping work will be done using Python.
-However, as the project progresses a move to C++ will be done
-in order to speed up the processing of the utility.
-The performance goal for this application would be on order of
-the running time of the video.
-A system that can operate in real time would be considered succesful
-and open up a larger array of possibilities and use cases.
+However, as the project progresses a move to C++ will be done in order to speed up the processing of the utility.
+The performance goal for this application would be on order of the running time of the video.
+A system that can operate in real time would be considered succesful and open up a larger array of possibilities and use cases.
