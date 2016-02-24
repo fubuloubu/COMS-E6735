@@ -1,6 +1,10 @@
-*.pdf*
+# LaTeX intermediates
 *.log
 *.out
 *.aux
+# Minted intermediates
+*.pdf*
 *.pyg
 _minted-*
+# Python binaries
+*.pyc
