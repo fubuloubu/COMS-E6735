@@ -6,8 +6,10 @@
 	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null || \
 		(echo && echo "Error:" && echo && cat $*.log | grep -A 10 ^! && exit 1)
 	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null
-	@echo "  MOVE $@"
-	@mv $@ ~/Downloads
+	@if [ -d "$$(readlink -f ~/Downloads)" ]; then \
+		echo "  MOVE $@"; \
+		mv $@ ~/Downloads; \
+	fi;
 
 # Clean rule to remove intermediates 
 # produced by LaTeX and relevant libraries
