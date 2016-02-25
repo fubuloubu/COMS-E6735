@@ -15,9 +15,8 @@ def rotate(frame, deg=0):
     M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
     return cv2.warpAffine(frame,M,(cols,rows))
 
-# Main function captures video,
-# and can by called with a transformation function
-def main(transform=lambda x: x):
+# capture live video and apply transformation function
+def capture(transform=lambda x: x):
     cap = cv2.VideoCapture(0)
 
     while(True):
@@ -41,4 +40,6 @@ def main(transform=lambda x: x):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    main(mirror)
+    # If running this as a script,
+    # just run the mirror transformation on live feed
+    capture(mirror)
