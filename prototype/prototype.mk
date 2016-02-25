@@ -1,7 +1,8 @@
 # rule to run python scripts
 .PHONY: %.pyrun
 %.pyrun: %.py
-	xiwi -F ./$<
+	@echo "  RUN xiwi $<"
+	@xiwi -F ./$<
 
 # clean rule for prototype scripts
 .PHONY: clean
