@@ -2,7 +2,7 @@
 .PHONY: %.pyrun
 %.pyrun: %.py
 	@echo "  RUN xiwi $<"
-	@xiwi -F ./$<
+	@xiwi -F ./$< >> $@ 2>&1 && rm $@ || cat $@
 
 # clean rule for prototype scripts
 .PHONY: clean
