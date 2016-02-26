@@ -39,6 +39,37 @@ def capture(transform=lambda x: x):
     cap.release()
     cv2.destroyAllWindows()
 
+def execute(infile, outfile, transform=lambda x: x):
+    return
+
+def save(outfile, codec, fps, transform=lambda x: x):
+    # initialize the FourCC, video writer, dimensions of the frame, and
+    # zeros array
+    #fourcc = cv2.VideoWriter_fourcc(*codec)
+    writer = None
+    (h, w) = (None, None)
+    # check if the writer is None
+    if writer is None:
+        # initialize the video writer
+        cap = cv2.VideoCapture(0)
+        ret, frame = cap.read()
+        (h, w) = frame.shape[:2]
+        #writer = cv2.VideoWriter(outfile, -1, fps, (w, h), True)
+    
+    # Helper function to execute transform
+    # Write to file
+    # Then return transformed frame for display
+    def exe_and_write(x):
+        x = transform(x)
+        #writer.write(x)
+        return x
+
+    # Call capture with helper function
+    capture(exe_and_write) #loop until user finishes
+
+    # Clean up writer
+    #writer.release()
+
 if __name__ == '__main__':
     # If running this as a script,
     # just run the mirror transformation on live feed
