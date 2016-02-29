@@ -7,11 +7,7 @@
 status:
 	@echo "STATUS $${PWD##*/}/*.*"
 	@\
-for file in *.*; do \
-	#if [ $$file == *template* ]; then \
-	#	echo "$$file: Skipping"; \
-	#	continue; \
-	#fi \
+for file in `ls *.* | egrep -v "(template)"`; do \
 	todo_togo=$$(grep -c TODO $$file); \
 	todo_done=$$(grep -c DONE $$file); \
 	total=$$(expr $$todo_done + $$todo_togo); \
