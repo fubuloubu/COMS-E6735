@@ -4,7 +4,7 @@
 %.pdf: %.tex
 	@echo " LATEX $<"
 	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null || \
-		(echo && echo "Error:" && echo && cat $*.log | grep -A 10 ^! && exit 1)
+		(echo && echo "Error:" && echo && cat $*.log | grep -A 10 ^! && rm $@ && exit 1)
 	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null
 	@if [ -d "$$(readlink -f ~/Downloads)" ]; then \
 		echo "  MOVE $@"; \
