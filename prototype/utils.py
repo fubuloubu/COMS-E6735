@@ -15,6 +15,29 @@ def rotate(frame, deg=0):
     M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
     return cv2.warpAffine(frame,M,(cols,rows))
 
+# Add text to frame at the specified location
+def addtext(frame, text="Hello, world!", location="cc"):
+    fontFace = cv2.FONT_HERSHEY_PLAIN
+    fontScale = 1
+    color = (255, 0, 255) # magenta
+    thickness = 1
+    ((sh,sw),bl) = cv2.getTextSize(text, fontFace, fontScale, thickness)
+    (h, w) = frame.shape[:2]
+    coords = {
+        "ur" : (  0,   0),
+        "cr" : (h/2,   0),
+        "lr" : (  h,   0),
+        "uc" : (  0, w/2),
+        "cc" : (h/2-sh, w/2-sw),
+        "lc" : (  h, w/2),
+        "ul" : (  0,   w),
+        "cl" : (h/2,   w),
+        "ll" : (  h,   w),
+    }
+    lineType = cv2.CV_AA
+    cv2.putText(frame, text, coords[location], fontFace, fontScale, color, thickness, lineType)
+    return frame
+
 # capture live video and apply transformation function
 def capture(transform=lambda x: x):
     cap = cv2.VideoCapture(0)
