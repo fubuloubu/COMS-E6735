@@ -11,8 +11,8 @@
 \fancypagestyle{plain}{
     \fancyhf{} %Clear Everything.
     \lhead{ \authorship }
-    \chead{ COMS E6735 }
-    \rhead{ \jobname\ Page \thepage\ of \pageref{LastPage} }
+    \chead{ CSEE W4824 }
+    \rhead{ \jobname\ Page \thepage\ of \pageref*{LastPage} }
     \setlength{\headheight}{30pt}
     \setlength{\footskip}{24pt}
     \renewcommand{\headrulewidth}{1pt} %0pt for no rule, 2pt thicker etc...
@@ -21,9 +21,12 @@
 \pagestyle{plain}
 
 %% URLs
-\usepackage{url}
+\usepackage[ocgcolorlinks]{hyperref}
 \urlstyle{same}
 \renewcommand\UrlFont{\color{blue}}
+
+%% Bibliography
+\usepackage{cite}
 
 %% Lists
 \usepackage[shortlabels]{enumitem}
@@ -44,12 +47,14 @@
 %% Tables 
 \usepackage{booktabs}
 \usepackage{longtable}
+\usepackage{multirow}
 
 %% CSV Files
 \usepackage{csvsimple}
 
 %% Graphs
 \usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
 \pgfplotsset{width=10cm,compat=1.7}
 \pgfplotsset{every axis legend/.append style={
              at={(0,0)},
@@ -75,6 +80,10 @@
     \lowercase{\endgroup\let~}\sb
     \mathcode`_="8000
 }
+
+% Inline quick macros
+\newmintinline[cpp]{cpp}{}
+\newmintinline[ansic]{c}{}
 
 % Custom macro for code listings from files
 % #1 - language e.g. ocaml

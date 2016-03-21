@@ -5,7 +5,10 @@
 	@echo " LATEX $<"
 	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null || \
 		(echo && echo "Error:" && echo && cat $*.log | grep -A 10 ^! && rm $@ && exit 1)
-	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null
+	@bibtex $* > /dev/null || \
+		(echo && echo "Error:" && echo && cat $*.blg | grep -A 10 ^! && rm $@ && exit 1)
+	@pdflatex -shell-escape -interaction=batchmode $< > /dev/null || \
+		(echo && echo "Error:" && echo && cat $*.log | grep -A 10 ^! && rm $@ && exit 1)
 	@if [ -d "$$(readlink -f ~/Downloads)" ]; then \
 		echo "  MOVE $@"; \
 		mv $@ ~/Downloads; \
@@ -19,5 +22,7 @@ clean:
 	@rm -f *.log
 	@rm -f *.out
 	@rm -f *.aux
+	@rm -f *.blg
+	@rm -f *.bbl
 	@rm -f *.pyg
 	@rm -rf _minted-*
