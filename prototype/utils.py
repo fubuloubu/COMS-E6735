@@ -24,15 +24,15 @@ def addtext(frame, text="Hello, world!", location="cc"):
     ((sh,sw),bl) = cv2.getTextSize(text, fontFace, fontScale, thickness)
     (h, w) = frame.shape[:2]
     coords = {
-        "ur" : (  0,   0),
-        "cr" : (h/2,   0),
-        "lr" : (  h,   0),
-        "uc" : (  0, w/2),
-        "cc" : (h/2-sh, w/2-sw),
-        "lc" : (  h, w/2),
-        "ul" : (  0,   w),
-        "cl" : (h/2,   w),
-        "ll" : (  h,   w),
+        "ul" : (  0     +bl,   0+sw+bl),
+        "cl" : (  0     +bl, h/2      ),
+        "ll" : (  0     +bl,   h-sw-bl),
+        "uc" : (w/2-sh/2   ,   0+sw+bl),
+        "cc" : (w/2-sh/2   , h/2      ),
+        "lc" : (w/2-sh/2   ,   h-sw-bl),
+        "ur" : (  w-sh  -bl,   0+sw+bl),
+        "cr" : (  w-sh  -bl, h/2      ),
+        "lr" : (  w-sh  -bl,   h-sw-bl),
     }
     lineType = cv2.CV_AA
     cv2.putText(frame, text, coords[location], fontFace, fontScale, color, thickness, lineType)
