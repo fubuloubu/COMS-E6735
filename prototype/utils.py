@@ -74,36 +74,39 @@ def capture(transform=lambda x: x):
     cap.release()
     cv2.destroyAllWindows()
 
+"""
 def execute(infile, outfile, transform=lambda x: x):
-    return
-
-def save(outfile, codec, fps, transform=lambda x: x):
-    # initialize the FourCC, video writer, dimensions of the frame, and
-    # zeros array
-    #fourcc = cv2.VideoWriter_fourcc(*codec)
+    (h, w) = frame.shape[:2]
+    writer = cv2.VideoWriter(outfile, -1, fps, (w, h), True)
+    while():
+        frame = transform(frame)
+        writer.write(frame)
+    writer.release()
+"""
+# Save Displayed video while executing H264
+def save(transform=lambda x: x, outfile='test.avi', codec='MJPG', fps=30):
+    # initialize the FourCC obj, video writer, 
+    # and dimensions of the frame
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    global writer
     writer = None
-    (h, w) = (None, None)
-    # check if the writer is None
-    if writer is None:
-        # initialize the video writer
-        cap = cv2.VideoCapture(0)
-        ret, frame = cap.read()
-        (h, w) = frame.shape[:2]
-        #writer = cv2.VideoWriter(outfile, -1, fps, (w, h), True)
-    
-    # Helper function to execute transform
-    # Write to file
-    # Then return transformed frame for display
-    def exe_and_write(x):
-        x = transform(x)
-        #writer.write(x)
-        return x
+    # Helper function to execute transform, write to file,
+    # then return transformed frame for display
+    def exec_and_write(frame):
+        # On first capture, initialize the video writer
+        global writer
+        if writer is None:
+            (h, w) = frame.shape[:2]
+            writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
+        frame = transform(frame)
+        writer.write(frame)
+        return frame
 
     # Call capture with helper function
-    capture(exe_and_write) #loop until user finishes
+    capture(exec_and_write) #loop until user finishes
 
     # Clean up writer
-    #writer.release()
+    writer.release()
 
 if __name__ == '__main__':
     # If running this as a script,
