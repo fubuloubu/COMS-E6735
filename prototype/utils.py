@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import cv2
+import numpy as np
 
 # Flip video around
 def mirror(frame):
@@ -36,6 +37,17 @@ def addtext(frame, text="Hello, world!", location="cc"):
     }
     lineType = cv2.CV_AA
     cv2.putText(frame, text, coords[location], fontFace, fontScale, color, thickness, lineType)
+    return frame
+
+# Add shape described by list of points in clockwise direction to frame
+# note: last point connects to first point
+def addshape(frame, shape_pts):
+    color = (255, 0, 255) # magenta
+    thickness = 1
+    lineType = cv2.CV_AA
+    pts = np.array(shape_pts, np.int32)
+    pts = pts.reshape((-1,1,2))
+    cv2.polylines(frame, [pts], True, color, thickness, lineType)
     return frame
 
 # capture live video and apply transformation function
