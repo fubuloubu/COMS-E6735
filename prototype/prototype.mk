@@ -3,7 +3,7 @@
 %.pyrun: %.py
 	@echo "  RUN xiwi $<"
 	@python -m py_compile $< # Compile to parse for errors
-	@xiwi -F ./$< 2> $@ && rm $@ || cat $@
+	@xiwi -T ./$< >/dev/null 2> $@ && cat $@ | awk '/Traceback/{flag=1}/Running exit commands/{flag=0}flag' && rm $@
 
 # clean rule for prototype scripts
 .PHONY: clean
