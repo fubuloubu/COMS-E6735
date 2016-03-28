@@ -23,6 +23,7 @@ def addtext(frame, text="Hello, world!", location="cc"):
     fontScale = 1
     color = (255, 0, 255) # magenta
     thickness = 1
+    # TODO: handle newlines
     ((sh,sw),bl) = cv2.getTextSize(text, fontFace, fontScale, thickness)
     (h, w) = frame.shape[:2]
     coords = {
