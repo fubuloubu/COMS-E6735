@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import cv2
 import numpy as np
+from progress.bar import Bar
 
 # Flip video around
 def mirror(frame):
@@ -74,15 +75,40 @@ def capture(transform=lambda x: x):
     cap.release()
     cv2.destroyAllWindows()
 
-"""
+# Process infile, apply transform frame by frame,
+# writing to outfile. Note: removes sound
 def execute(infile, outfile, transform=lambda x: x):
-    (h, w) = frame.shape[:2]
-    writer = cv2.VideoWriter(outfile, -1, fps, (w, h), True)
-    while():
+    cap = cv2.VideoCapture(infile)
+
+    # Get necessary video attributes from file
+    fps = cap.get(cv2.cv.CV_CAP_PROP_FPS)
+    # HACK: if NaN, set to 30FPS
+    if np.isnan(fps):
+        fps = 30
+    else:
+        fps = int(round(fps))
+    fourcc = int(cap.get(cv2.cv.CV_CAP_PROP_FOURCC))
+    w = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+    fc = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+    
+    # Initialize video writer and progress bar
+    writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
+    bar = Bar('Applying Transform', max=fc)
+
+    # Initialize first frame
+    ret, frame = cap.read()
+    # While there are frames in video, apply transform and write
+    while(ret):
+        bar.next()
         frame = transform(frame)
         writer.write(frame)
+        ret, frame = cap.read()
+    # When everything done, release the capture and writer
+    bar.finish()
+    cap.release()
     writer.release()
-"""
+
 # Save Displayed video while executing H264
 def save(transform=lambda x: x, outfile='test.avi', codec='MJPG', fps=30):
     # initialize the FourCC obj, video writer, 
