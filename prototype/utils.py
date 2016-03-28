@@ -75,6 +75,31 @@ def capture(transform=lambda x: x):
     cap.release()
     cv2.destroyAllWindows()
 
+# Save Displayed video while executing H264
+def save(transform=lambda x: x, outfile='test.avi', codec='MJPG', fps=30):
+    # initialize the FourCC obj, video writer, 
+    # and dimensions of the frame
+    fourcc = cv2.cv.CV_FOURCC(*codec)
+    global writer
+    writer = None
+    # Helper function to execute transform, write to file,
+    # then return transformed frame for display
+    def exec_and_write(frame):
+        # On first capture, initialize the video writer
+        global writer
+        if writer is None:
+            (h, w) = frame.shape[:2]
+            writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
+        frame = transform(frame)
+        writer.write(frame)
+        return frame
+
+    # Call capture with helper function
+    capture(exec_and_write) #loop until user finishes
+
+    # Clean up writer
+    writer.release()
+
 # Process infile, apply transform frame by frame,
 # writing to outfile. Note: removes sound
 def execute(infile, outfile, transform=lambda x: x):
@@ -107,31 +132,6 @@ def execute(infile, outfile, transform=lambda x: x):
     # When everything done, release the capture and writer
     bar.finish()
     cap.release()
-    writer.release()
-
-# Save Displayed video while executing H264
-def save(transform=lambda x: x, outfile='test.avi', codec='MJPG', fps=30):
-    # initialize the FourCC obj, video writer, 
-    # and dimensions of the frame
-    fourcc = cv2.cv.CV_FOURCC(*codec)
-    global writer
-    writer = None
-    # Helper function to execute transform, write to file,
-    # then return transformed frame for display
-    def exec_and_write(frame):
-        # On first capture, initialize the video writer
-        global writer
-        if writer is None:
-            (h, w) = frame.shape[:2]
-            writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
-        frame = transform(frame)
-        writer.write(frame)
-        return frame
-
-    # Call capture with helper function
-    capture(exec_and_write) #loop until user finishes
-
-    # Clean up writer
     writer.release()
 
 if __name__ == '__main__':
