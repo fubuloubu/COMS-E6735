@@ -54,6 +54,10 @@ def addshape(frame, shape_pts):
 # capture live video and apply transformation function
 def capture(transform=lambda x: x):
     cap = cv2.VideoCapture(0)
+    
+    # Initialize a full-screen window
+    cv2.namedWindow("test", cv2.WND_PROP_FULLSCREEN)          
+    cv2.setWindowProperty("test", cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
 
     while(True):
         # Capture frame-by-frame
@@ -63,8 +67,6 @@ def capture(transform=lambda x: x):
         transform_frame = transform(frame)
 
         # Display the resulting frame fullscreen
-        cv2.namedWindow("test", cv2.WND_PROP_FULLSCREEN)          
-        cv2.setWindowProperty("test", cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
         cv2.imshow("test", transform_frame)
         
         # Break if user presses q key
@@ -133,6 +135,23 @@ def execute(infile, outfile, transform=lambda x: x):
     bar.finish()
     cap.release()
     writer.release()
+
+# Process infile, apply transform frame by frame,
+# and show it. Note: removes sound
+def show(infile, transform=lambda x: x):
+
+    # Initialize a full-screen window
+    cv2.namedWindow("test", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("test", cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
+    
+    # Helper function to apply transform to file
+    def transform_and_show(frame):
+        cv2.imshow("test", transform(frame))
+
+    # Write to a temporary file then execute using helper
+    outfile = 'temp_' + infile
+    execute(infile, outfile, transform_and_show)
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     # If running this as a script,
