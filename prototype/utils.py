@@ -19,26 +19,39 @@ def rotate(frame, deg=0):
 
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc"):
+    # Display settings
     fontFace = cv2.FONT_HERSHEY_PLAIN
     fontScale = 1
     color = (255, 0, 255) # magenta
     thickness = 1
-    # TODO: handle newlines
-    ((sh,sw),bl) = cv2.getTextSize(text, fontFace, fontScale, thickness)
-    (h, w) = frame.shape[:2]
-    coords = {
-        "ul" : (  0     +bl,   0+sw+bl),
-        "cl" : (  0     +bl, h/2      ),
-        "ll" : (  0     +bl,   h-sw-bl),
-        "uc" : (w/2-sh/2   ,   0+sw+bl),
-        "cc" : (w/2-sh/2   , h/2      ),
-        "lc" : (w/2-sh/2   ,   h-sw-bl),
-        "ur" : (  w-sh  -bl,   0+sw+bl),
-        "cr" : (  w-sh  -bl, h/2      ),
-        "lr" : (  w-sh  -bl,   h-sw-bl),
-    }
     lineType = cv2.CV_AA
-    cv2.putText(frame, text, coords[location], fontFace, fontScale, color, thickness, lineType)
+    # Sizing constants
+    (h, w) = frame.shape[:2]
+    linespace = 12
+    lines = text.split('\n')
+    # Function used to create coordinates for each line
+    # center level is set by finding center point and biasing each line top down
+    numlines = len(lines)
+    # hack: if displaying on the lower part of the frame, 
+    #       go backwards and fill upwards
+    if location[0] == 'l':
+        lines.reverse()
+    coords = {
+        "ul" : (lambda sh, sw, bl, i: (  0     +bl,   0+sw+bl +linespace*i                  )),
+        "cl" : (lambda sh, sw, bl, i: (  0     +bl, h/2       +linespace*(i-(numlines-1)/2) )),
+        "ll" : (lambda sh, sw, bl, i: (  0     +bl,   h-sw-bl -linespace*i                  )),
+        "uc" : (lambda sh, sw, bl, i: (w/2-sh/2   ,   0+sw+bl +linespace*i                  )),
+        "cc" : (lambda sh, sw, bl, i: (w/2-sh/2   , h/2       +linespace*(i-(numlines-1)/2) )),
+        "lc" : (lambda sh, sw, bl, i: (w/2-sh/2   ,   h-sw-bl -linespace*i                  )),
+        "ur" : (lambda sh, sw, bl, i: (  w-sh  -bl,   0+sw+bl +linespace*i                  )),
+        "cr" : (lambda sh, sw, bl, i: (  w-sh  -bl, h/2       +linespace*(i-(numlines-1)/2) )),
+        "lr" : (lambda sh, sw, bl, i: (  w-sh  -bl,   h-sw-bl -linespace*i                  )),
+    }
+    # For each line, grab line sizing information and add line to frame
+    for i, line in enumerate(lines):
+        ((sh,sw),bl) = cv2.getTextSize(line, fontFace, fontScale, thickness)
+        cv2.putText(frame, line, coords[location](sh, sw, bl, i), 
+                fontFace, fontScale, color, thickness, lineType)
     return frame
 
 # Add shape described by list of points in clockwise direction to frame
