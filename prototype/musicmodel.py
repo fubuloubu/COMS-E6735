@@ -19,6 +19,8 @@ def get_note(frame):
         return ['-','-','-','-','-','-']
 
 # Construct tablature from note occurances
+#TODO: Involve Beats per minute and Frames Per Second
+#      to intelligently reduce number of notes displayed
 global tablature 
 tablature = []
 def add_to_tablature(frame):
