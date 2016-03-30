@@ -1,0 +1,3 @@
+[submodule "training-sets/opencv-haar-classifier-training"]
+	path = training-sets/opencv-haar-classifier-training
+	url = https://github.com/mrnugget/opencv-haar-classifier-training
