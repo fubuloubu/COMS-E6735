@@ -8,17 +8,17 @@
 	@ffmpeg -i $< -y -an -r 6 -f image2 $@/$*_%04d.jpg
 	@echo "Please manually select images in $@"
 
-%.tar.gz: | %_frames
+%.tar.gz: %_frames
 	@echo "   ZIP $<"
 	@tar czf $@ -C $< .
 
-%_images: | %.tar.gz
+%_images: %.tar.gz
 	@echo " UNZIP $<"
 	@rm -rf $@
 	@mkdir $@
 	@tar xzf $< -C $@
 
-%s.txt: | %_images
+%s.txt: %_images
 	@echo "   GEN $*s list"
 	@find ./$*_images -iname "*.jpg" > $@
 
@@ -39,7 +39,7 @@ samples: | $(LIST_FILES) fix-positives
 	@perl "../opencv-haar-classifier-training/bin\
 	/createsamples.pl" \
 		$(LIST_FILES) \
-		samples 1500 \
+		samples 400 \
 		"opencv_createsamples \
 		-bgcolor 0 -bgthresh 0 \
 		-maxxangle 1.1 -maxyangle 1.1 \
@@ -51,7 +51,7 @@ samples: | $(LIST_FILES) fix-positives
 samples.vec: | samples
 	@echo "   GEN $@"
 	@#Delete the empty files for now to avoid errors TODO
-	@find samples -size 0 -exec echo "   DEL empty file: {}" \;
+	@find samples -size 0 -exec echo "   DEL {} (empty file)" \;
 	@find samples -size 0 -delete
 	@python ../mergevec/mergevec.py -v samples -o samples.vec
 
@@ -63,11 +63,12 @@ classifier: samples.vec
 		-vec $< -bg $(NEGATIVES)\
 		-numStages 20 -minHitRate 0.999\
 	   	-maxFalseAlarmRate 0.5\
-		-numPos 1000 -numNeg 600\
+		-numPos 400 -numNeg 600\
 		$(call GET_W_AND_H,$(shell head -n 1 $(POSITIVES))) \
 		-mode ALL -numThreads 7\
 	   	-precalcValBufSize 1024\
-		-precalcIdxBufSize 1024
+		-precalcIdxBufSize 1024 ||\
+		rm -rf $@
 
 INTERMEDIATES=*_frames *_images *s.txt samples samples.vec classifier
 .PHONY: clean
