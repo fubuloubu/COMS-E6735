@@ -57,6 +57,7 @@ samples.vec: | samples
 	@find samples -size 0 -delete
 	@python ../mergevec/mergevec.py -v samples -o samples.vec
 
+.PHONY: classifier
 classifier: samples.vec
 	@echo " TRAIN $${PWD##*/}"
 	@rm -rf $@*
@@ -71,6 +72,7 @@ classifier: samples.vec
 	   	-precalcValBufSize 1024\
 		-precalcIdxBufSize 1024 ||\
 		rm -rf $@
+	@cp $@/cascade.xml $@.xml
 
 INTERMEDIATES=*_frames *_images *s.txt samples samples.vec classifier
 .PHONY: clean
