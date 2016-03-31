@@ -28,8 +28,6 @@ fix-positives: positive_images
 	@../fix_size_to_largest.py $^
 
 GET_W_AND_H=$(shell python -c "from PIL import Image; sz=Image.open('$(1)').size; print '-w ' + str(sz[0]) + ' -h ' + str(sz[1]);")
-test:
-	echo "$(call GET_W_AND_H,./positive_images/positive_0047.jpg)"
 
 POSITIVES=positives.txt
 NEGATIVES=negatives.txt
