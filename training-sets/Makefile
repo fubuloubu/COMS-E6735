@@ -27,6 +27,10 @@ fix-positives: positive_images
 	@echo "FIXING $^"
 	@../fix_size_to_largest.py $^
 
+GET_W_AND_H=$(shell python -c "from PIL import Image; sz=Image.open('$(1)').size; print '-w ' + str(sz[0]) + ' -h ' + str(sz[1]);")
+test:
+	echo "$(call GET_W_AND_H,./positive_images/positive_0047.jpg)"
+
 POSITIVES=positives.txt
 NEGATIVES=negatives.txt
 LIST_FILES=$(POSITIVES) $(NEGATIVES)
@@ -41,13 +45,15 @@ samples: $(LIST_FILES) fix-positives
 		"opencv_createsamples \
 		-bgcolor 0 -bgthresh 0 \
 		-maxxangle 1.1 -maxyangle 1.1 \
-		maxzangle 0.5 -maxidev 40 -w 80 -h 40" \
-		> $@.txt
+		maxzangle 0.5 -maxidev 40 \
+		$(call GET_W_AND_H,S(shell head -n 1 $(POSITIVES)))" \
+		> /dev/null
 	@find ./$@ -iname "*.vec" > $@.txt
 
 samples.vec: samples.txt
 	@echo "   GEN $@"
-	@#Delete the empty files for now TODO
+	@#Delete the empty files for now to avoid errors TODO
+	@find samples -size 0 -exec echo "   DEL empty file: {}" \;
 	@find samples -size 0 -delete
 	@python ../mergevec/mergevec.py -v samples -o samples.vec
 
@@ -56,9 +62,10 @@ classifier: samples.vec
 	@opencv_traincascade -data $@\
 		-vec $< -bg $(NEGATIVES)\
 		-numStages 20 -minHitRate 0.999\
-	   	-maxFalseAlarmRate 0.5 -numPos 1000\
-		-numNeg 600 -w 80 -h 40 -mode ALL\
-		-numThreads 7\
+	   	-maxFalseAlarmRate 0.5\
+		-numPos 1000 -numNeg 600\
+		$(call GET_W_AND_H,S(shell head -n 1 $(POSITIVES))) \
+		-mode ALL -numThreads 7\
 	   	-precalcValBufSize 1024\
 		-precalcIdxBufSize 1024
 
