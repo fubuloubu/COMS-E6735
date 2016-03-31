@@ -8,17 +8,17 @@
 	@ffmpeg -i $< -y -an -r 6 -f image2 $@/$*_%04d.jpg
 	@echo "Please manually select images in $@"
 
-%.tar.gz: %_frames
+%.tar.gz: | %_frames
 	@echo "   ZIP $<"
 	@tar czf $@ -C $< .
 
-%_images: %.tar.gz
+%_images: | %.tar.gz
 	@echo " UNZIP $<"
 	@rm -rf $@
 	@mkdir $@
 	@tar xzf $< -C $@
 
-%s.txt: %_images
+%s.txt: | %_images
 	@echo "   GEN $*s list"
 	@find ./$*_images -iname "*.jpg" > $@
 
@@ -32,7 +32,7 @@ GET_W_AND_H=$(shell python -c "from PIL import Image; sz=Image.open('$(1)').size
 POSITIVES=positives.txt
 NEGATIVES=negatives.txt
 LIST_FILES=$(POSITIVES) $(NEGATIVES)
-samples: $(LIST_FILES) fix-positives
+samples: | $(LIST_FILES) fix-positives
 	@echo "   GEN $@"
 	@rm -rf $@*
 	@mkdir $@
@@ -48,7 +48,7 @@ samples: $(LIST_FILES) fix-positives
 		> /dev/null
 	@find ./$@ -iname "*.vec" > $@.txt
 
-samples.vec: samples
+samples.vec: | samples
 	@echo "   GEN $@"
 	@#Delete the empty files for now to avoid errors TODO
 	@find samples -size 0 -exec echo "   DEL empty file: {}" \;
