@@ -17,6 +17,8 @@
 	@rm -rf $@
 	@mkdir $@
 	@tar xzf $< -C $@
+	@#Resize image to be under 100px so memory fits
+	@../resize_images.py $@ 0.05
 
 %s.txt: %_images
 	@echo "   GEN $*s list"
