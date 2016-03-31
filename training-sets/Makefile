@@ -46,11 +46,11 @@ samples: $(LIST_FILES) fix-positives
 		-bgcolor 0 -bgthresh 0 \
 		-maxxangle 1.1 -maxyangle 1.1 \
 		maxzangle 0.5 -maxidev 40 \
-		$(call GET_W_AND_H,S(shell head -n 1 $(POSITIVES)))" \
+		$(call GET_W_AND_H,$(shell head -n 1 $(POSITIVES)))" \
 		> /dev/null
 	@find ./$@ -iname "*.vec" > $@.txt
 
-samples.vec: samples.txt
+samples.vec: samples
 	@echo "   GEN $@"
 	@#Delete the empty files for now to avoid errors TODO
 	@find samples -size 0 -exec echo "   DEL empty file: {}" \;
@@ -59,17 +59,19 @@ samples.vec: samples.txt
 
 classifier: samples.vec
 	@echo " TRAIN $${PWD##*/}"
+	@rm -rf $@*
+	@mkdir $@
 	@opencv_traincascade -data $@\
 		-vec $< -bg $(NEGATIVES)\
 		-numStages 20 -minHitRate 0.999\
 	   	-maxFalseAlarmRate 0.5\
 		-numPos 1000 -numNeg 600\
-		$(call GET_W_AND_H,S(shell head -n 1 $(POSITIVES))) \
+		$(call GET_W_AND_H,$(shell head -n 1 $(POSITIVES))) \
 		-mode ALL -numThreads 7\
 	   	-precalcValBufSize 1024\
 		-precalcIdxBufSize 1024
 
-INTERMEDIATES=*_frames *_images *s.txt samples samples.vec
+INTERMEDIATES=*_frames *_images *s.txt samples samples.vec classifier
 .PHONY: clean
 clean:
 	@echo " CLEAN $${PWD##*/}"
