@@ -1,9 +1,12 @@
 #!/usr/bin/python
 import utils
+import cv2
 
 # Find body of guitar for use in hand location algorithms
 def guitar(frame):
-    location_coords = []
+    guitar_cascade = cv2.CascadeClassifier('guitar_classifier.xml')
+    guitars = guitar_cascade.detectMultiScale(frame, 1.3, 5)
+    location_coords = guitars
     return location_coords
 
 # Using guitar location in frame, find the picking hand location
