@@ -4,7 +4,7 @@ import glob
 from PIL import Image, ImageOps
 
 def increase_image_size(image, filename, border_size):
-    color = (245, 241, 222) # Beige
+    color = 0 # Black
     new_image = ImageOps.expand(image, border_size, color)
     new_image.save(filename)
 
