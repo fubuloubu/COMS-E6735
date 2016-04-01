@@ -45,7 +45,7 @@ samples: | $(LIST_FILES) fix-positives
 		"opencv_createsamples \
 		-bgcolor 0 -bgthresh 0 \
 		-maxxangle 1.1 -maxyangle 1.1 \
-		maxzangle 0.5 -maxidev 40 \
+		-maxzangle 0.5 -maxidev 40 \
 		$(call GET_W_AND_H,$(shell head -n 1 $(POSITIVES)))" \
 		> /dev/null
 	@find ./$@ -iname "*.vec" > $@.txt
