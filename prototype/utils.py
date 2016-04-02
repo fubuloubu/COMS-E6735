@@ -11,6 +11,10 @@ def mirror(frame):
 def greyscale(frame):
     return cv2.cvtColor( frame, cv2.COLOR_RGB2GRAY )
 
+# Gaussian filter
+def gaussian(frame, ksize=(1, 1), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_CONSTANT):
+    return cv2.GaussianBlur(frame, ksize, sigmaX, sigmaY, borderType)
+
 # Rotation function
 def rotate(frame, deg=0):
     rows,cols,k = frame.shape
@@ -53,6 +57,12 @@ def addtext(frame, text="Hello, world!", location="cc"):
         cv2.putText(frame, line, coords[location](sh, sw, bl, i), 
                 fontFace, fontScale, color, thickness, lineType)
     return frame
+
+# Convert rectangles into shape point list for below
+def addrectangle(frame, rect):
+    for x1, y1, x2, y2 in rect:
+        pts = [(x1, y1),(x1, y2),(x2, y2),(x2, y1)]
+    return addshape(frame, pts)
 
 # Add shape described by list of points in clockwise direction to frame
 # note: last point connects to first point
