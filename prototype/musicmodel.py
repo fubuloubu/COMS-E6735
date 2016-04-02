@@ -20,11 +20,14 @@ global tablature
 tablature = []
 def add_to_tablature(frame):
     # Get the guitar's POI in the frame
-    guitar = guitarmodel.get_guitar(frame)
+    (guitar_coords, pickhand_coords, frethand_coords) = 
+        guitar_and_hands(frame)
+    guitar = guitarmodel.get_guitar(guitar_coords)
     if not guitar:
         raise ValueError("No guitar!")
     # Get the hand models for both hands
-    (picking_hand, fretting_hand) = handmodel.get_hands(frame)
+    (pickhand, frethand) =
+        guitarmodel.get_hands(frame, pickhand_coords, frethand_coords)
     if not picking_hand or not fretting_hand:
         raise ValueError("No hand(s)!")
     

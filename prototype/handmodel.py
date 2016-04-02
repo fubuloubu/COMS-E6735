@@ -3,7 +3,7 @@ import utils
 import locate
 
 # Intepret hand area of frame into hand model
-def to_handmodel(frame, hand_coords):
+def to_handmodel(hand_image):
     handmodel = []
     return handmodel
 
@@ -13,25 +13,25 @@ def to_wireframe(handmodel):
     return wireframe
 
 # Get the hand models for both hands
-def get_hands(frame):
-    # Find Coordinates of objects
-    guitar_coords = locate.guitar(frame)
-    picking_hand_coords = locate.picking_hand(frame, guitar_coords)
-    fretting_hand_coords = locate.fretting_hand(frame, guitar_coords)
+def get_hands(frame, pickhand_coords, frethand_coords):
     # Interpret hand areas to get hand models for both hands
-    picking_hand = to_handmodel(frame, picking_hand_coords)
-    fretting_hand = to_handmodel(frame, fretting_hand_coords)
-    return (picking_hand, fretting_hand)
+    pickhand = to_handmodel(utils.crop(frame, pickhand_coords))
+    frethand = to_handmodel(utils.crop(frame, frethand_coords))
+    return (pickhand, frethand)
 
 # Get digit wireframe of hand and present to user
 def main(frame):
     # Flip the frame for ease of understanding
     frame = utils.mirror(frame)
+    # Locate pickhand and frethand
+    (guitar_coords, pickhand_coords, frethand_coords) = 
+        locate.guitar_and_hands(frame)
     # Get the hands in the frame
-    (picking_hand, fretting_hand) = get_hands(frame)
+    (pickhand, frethand) =
+        get_hands(frame, pickhand_coords, frethand_coords)
     # Add wireframes for hands for display
-    frame = utils.addshape(frame, to_wireframe(picking_hand))
-    frame = utils.addshape(frame, to_wireframe(fretting_hand))
+    frame = utils.addshape(frame, to_wireframe(pickhand))
+    frame = utils.addshape(frame, to_wireframe(frethand))
     return frame
 
 if __name__ == '__main__':

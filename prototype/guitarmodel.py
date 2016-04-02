@@ -9,8 +9,6 @@ def to_wireframe(guitarmodel):
 
 # Get the hand models for both hands
 def get_guitar(frame):
-    # Find Coordinates of objects
-    guitar_coords = locate.guitar(frame)
     guitarmodel = []
     return guitarmodel
 
@@ -19,7 +17,7 @@ def main(frame):
     # Flip the frame for ease of understanding
     frame = utils.mirror(frame)
     # Get the guitar's POI in the frame
-    guitar = get_guitar(frame)
+    guitar = get_guitar(locate.guitar(frame))
     # Add wireframes for guitar's POI for display
     frame = utils.addshape(frame, to_wireframe(guitar))
     return frame
