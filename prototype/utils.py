@@ -15,11 +15,72 @@ def greyscale(frame):
 def gaussian(frame, ksize=(1, 1), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_CONSTANT):
     return cv2.GaussianBlur(frame, ksize, sigmaX, sigmaY, borderType)
 
+# Crop frame around rectangle
+def crop(frame, rect=None):
+    if rect is None:
+        return frame
+    else:
+        for x1, y1, x2, y2 in rect:
+            return frame[y1:y2, x1:x2]
+
+# Re-reference rectangle out of cropped frame
+# By moving upper left and lower right vertices
+# in the +x and +y direction by bounding box
+def uncrop(inner_rect, outer_rect):
+    if outer_rect is None or inner_rect is None:
+        return inner_rect
+    else:
+        return inner_rect + outer_rect\
+            *np.matrix('1 0 1 0; 0 1 0 1; 0 0 0 0; 0 0 0 0')
+
 # Rotation function
 def rotate(frame, deg=0):
     rows,cols,k = frame.shape
     M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
     return cv2.warpAffine(frame,M,(cols,rows))
+
+# Helper class to use Cascade Classifier functionality
+class Cascade:
+    def __init__(self, training_file):
+       self.cc = cv2.CascadeClassifier(training_file)
+       self.detected_obj = None
+
+    def detect(self, frame, scaleFactor=1.3, minNeighbors=5):
+        objects = self.cc.detectMultiScale(frame, scaleFactor, 
+                minNeighbors, flags=cv2.CASCADE_SCALE_IMAGE)
+        print 'Number of objects found: {}'.format(len(objects))
+        # function returns tuple if nothing was found
+        # else returns numpy ndarray list of rectangles
+        if len(objects) == 0:
+            return []
+        # Turn the [x, y, w, h] rectangle into
+        # an [x1, y1, x2, y2] rectangle
+        objects[:, 2:] += objects[:, :2]
+        # If more than one object, try to find
+        # closest to prior selection
+        if len(objects) != 1:
+            # Only find closest if a prior was found
+            if self.detected_obj is not None:
+                candidate = objects[0]
+                # Cost function balances distance translation
+                dx = 1
+                dy = 1
+                # and change in window size
+                dwx = 5
+                dwy = 5
+                costfunc = lambda row: abs(row-self.detected_obj)*\
+                        np.matrix([[dx],[dy],[dwx],[dwy]])
+                cost = costfunc(candidate)
+                for row in objects:
+                    rowcost = costfunc(row)
+                    if rowcost < cost:
+                        candidate = row
+                        cost = rowcost
+                self.detected_obj = candidate
+        else:
+            # Only one object found, return that one
+            self.detected_obj = objects[0]
+        return np.asmatrix(self.detected_obj).tolist()
 
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc"):
@@ -60,6 +121,8 @@ def addtext(frame, text="Hello, world!", location="cc"):
 
 # Convert rectangles into shape point list for below
 def addrectangle(frame, rect):
+    if len(rect) == 0:
+        return frame
     for x1, y1, x2, y2 in rect:
         pts = [(x1, y1),(x1, y2),(x2, y2),(x2, y1)]
     return addshape(frame, pts)
