@@ -1,36 +1,38 @@
 #!/usr/bin/python
-import sys, os
-import glob
+import sys, os, glob, math, argparse
 from PIL import Image, ImageOps
 
-def resize_image(image_file, scale):
+def resize_image(image_file, new_size):
     image = Image.open(image_file)
-    new_image = image.resize( [int(scale * s) for s in image.size] )
+    orig_size = image.size
+    # compute largest aspect ratio
+    aspect_ratio = max(orig_size[0]/float(new_size[0]), float(orig_size[1]/new_size[1]))
+    # Scale size while retaining aspect ratio
+    corr_size = (int(orig_size[0]/aspect_ratio), int(orig_size[1]/aspect_ratio))
+    new_image = image.resize( corr_size )
+    # Fill in remaining space with black
+    color = 0 # Black
+    new_image = ImageOps.expand(new_image, new_size, color)
     new_image.save(image_file)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print "ERROR: Please pass a folder name to this script!"
+    parser = argparse.ArgumentParser(description='Resize all jpg files in specified folder to specified size')
+    parser.add_argument('directory', metavar='DIRECTORY', nargs=1,
+            help='A directory containing 1 or more *.jpg files')
+    parser.add_argument('-W', metavar='w', required=True, type=int,
+            help='Desired width to set image sizes to')
+    parser.add_argument('-H', metavar='h', required=True, type=int,
+            help='Desired height to set image sizes to')
+    args = parser.parse_args()
+    directory = args.directory[0]
+    if not os.path.isdir(directory):
+        print "ERROR: No directory named " + directory + " exists!"
         sys.exit(1)
     else:
-        directory = sys.argv[1]
-        # Check if folder containing JPG files
-        if not os.path.isdir(directory):
-            print "ERROR: No directory named " + directory + " exists!"
+        jpg_files = glob.glob(directory + "/*.jpg")
+        if len(jpg_files) == 0:
+            print "ERROR: No *.jpg files in directory " + directory
             sys.exit(1)
         else:
-            jpg_files = glob.glob(directory + "/*.jpg")
-            if len(jpg_files) == 0:
-                print "ERROR: No *.jpg files in directory " + directory
-                sys.exit(1)
-            elif len(sys.argv) < 3:
-                print "ERROR: Please pass a scale factor to this script!"
-                sys.exit(1)
-            else:
-                try:
-                    scale = float(sys.argv[2])
-                except:
-                    print "ERROR: Scale Factor doesn't work (scale=" + sys.argv[2] + ")"
-                    sys.exit(1)
-                map(lambda im: resize_image(im, scale), jpg_files)
-
+            size = (args.W, args.H)
+            map(lambda im: resize_image(im, size), jpg_files)

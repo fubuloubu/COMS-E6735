@@ -17,8 +17,6 @@
 	@rm -rf $@
 	@mkdir $@
 	@tar xzf $< -C $@
-	@#Resize image to be under 100px so memory fits
-	@../resize_images.py $@ 0.05
 
 %s.txt: %_images
 	@echo "   GEN $*s list"
@@ -27,7 +25,8 @@
 .PHONY: fix-positives
 fix-positives: positive_images
 	@echo "FIXING $^"
-	@../fix_size_to_largest.py $^
+	@#Resize image to be under 100px so memory fits
+	@../resize_images.py -W 100 -H 100 $^
 
 GET_W_AND_H=$(shell python -c "from PIL import Image; sz=Image.open('$(1)').size; print '-w ' + str(sz[0]) + ' -h ' + str(sz[1]);")
 
@@ -57,20 +56,23 @@ samples.vec: | samples
 	@find samples -size 0 -delete
 	@python ../mergevec/mergevec.py -v samples -o samples.vec
 
+# Get main memory size (in kB), and return an eigth of that amount in megabytes for buffer sizing
+CMD_GET_SIZE=$(shell grep MemTotal /proc/meminfo | awk '{print $$2}' | xargs -I {} expr {} / 1024 / 8)
+
 .PHONY: classifier
 classifier: samples.vec
 	@echo " TRAIN $${PWD##*/}"
 	@rm -rf $@*
 	@mkdir $@
-	@opencv_traincascade -data $@\
-		-vec $< -bg $(NEGATIVES)\
-		-numStages 20 -minHitRate 0.999\
-	   	-maxFalseAlarmRate 0.5\
-		-numPos 400 -numNeg 600\
+	@opencv_traincascade -data $@ \
+		-vec $< -bg $(NEGATIVES) \
+		-numStages 20 -minHitRate 0.999 \
+	   	-maxFalseAlarmRate 0.5 \
+		-numPos 400 -numNeg 600 \
 		$(call GET_W_AND_H,$(shell head -n 1 $(POSITIVES))) \
-		-mode ALL -numThreads 7\
-	   	-precalcValBufSize 1024\
-		-precalcIdxBufSize 1024 ||\
+		-mode ALL -numThreads 7 \
+	   	-precalcValBufSize $(CMD_GET_SIZE) \
+		-precalcIdxBufSize $(CMD_GET_SIZE) ||\
 		rm -rf $@
 	@cp $@/cascade.xml $@.xml
 
