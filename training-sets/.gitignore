@@ -1,6 +1,7 @@
 classifier/
 *.mp4
 tmp
+fix_positives
 *.jpg
 *.vec
 *.txt
