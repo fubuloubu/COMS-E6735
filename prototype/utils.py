@@ -138,107 +138,151 @@ def addshape(frame, shape_pts):
     cv2.polylines(frame, [pts], True, color, thickness, lineType)
     return frame
 
-# capture live video and apply transformation function
-def capture(transform=lambda x: x):
-    cap = cv2.VideoCapture(0)
-    
-    # Initialize a full-screen window
-    cv2.namedWindow("test", cv2.WND_PROP_FULLSCREEN)          
-    cv2.setWindowProperty("test", cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
-
-    while(True):
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-
-        # Our operations on the frame come here
-        transform_frame = transform(frame)
-
-        # Display the resulting frame fullscreen
-        cv2.imshow("test", transform_frame)
+class VideoHandler:
+    def __init__(self, infile=None, outfile=None, open_window=True):
+        if infile is None:
+            self.infile = 0 # Live Feed Camera 1
+        else:
+            self.infile = infile
+            print "READING FROM FILE: {}".format(self.infile)
         
-        # Break if user presses q key
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        if outfile is None:
+            self.outfile = None
+        else:
+            self.outfile = outfile
+        
+        if open_window:
+            self.window_name = "Video Display Window"
+        else:
+            self.window_name = None
 
-    # When everything done, release the capture
-    cap.release()
-    cv2.destroyAllWindows()
+    def __enter__(self):
+        if self.window_name is not None:
+            # Initialize a full-screen window
+            print "INITIALIZING {}".format(self.window_name)
+            cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)          
+            cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
+        else:
+            print "WARNING: NO DISPLAY SET!"
+        self.cap = cv2.VideoCapture(self.infile)
 
-# Save Displayed video while executing H264
-def save(transform=lambda x: x, outfile='test.avi', codec='MJPG', fps=30):
-    # initialize the FourCC obj, video writer, 
-    # and dimensions of the frame
-    fourcc = cv2.cv.CV_FOURCC(*codec)
-    global writer
-    writer = None
-    # Helper function to execute transform, write to file,
-    # then return transformed frame for display
-    def exec_and_write(frame):
-        # On first capture, initialize the video writer
-        global writer
-        if writer is None:
-            (h, w) = frame.shape[:2]
-            writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
-        frame = transform(frame)
-        writer.write(frame)
+        if self.infile == 0:
+            self.codec = 'IYUV'
+            self.fc = None
+            self.bar = None
+        else:
+            # Set up codec using video file
+            fourcc_int = int(self.cap.get(cv2.cv.CV_CAP_PROP_FOURCC))
+            fourcc_hex = hex(fourcc_int)[2:]
+            if fourcc_hex == '0':
+                raise IOError("No Codec Information in file {}".format(self.infile))
+            else:
+                # Characters are backwards, so decode and reverse
+                self.codec = bytearray.fromhex(fourcc_hex).decode()[::-1]
+            print 'VIDEO CODEC: {}'.format(self.codec)
+            if self.codec == '1cva':
+                self.codec = 'H264'
+                print 'CHANGED TO: {}'.format(self.codec)
+            
+            # We're processing a video so setup the progress bar
+            self.fc = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+            print "FRAME COUNT: {}".format(self.fc)
+            self.bar = Bar('Applying Transform', max=self.fc)
+
+        # Get necessary video attributes from file
+        self.fps = self.cap.get(cv2.cv.CV_CAP_PROP_FPS)
+        # HACK: if NaN, set to 30FPS
+        if np.isnan(self.fps):
+            self.fps = 10
+        else:
+            self.fps = int(round(self.fps))
+        print "FPS: {}".format(self.fps)
+
+        # Height and width
+        self.w = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+        self.h = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+        print "FRAME SIZE: {} x {} px".format(self.w, self.h)
+        self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+        
+        # Initialize video writer and progress bar
+        if self.outfile is None:
+            self.writer = None
+        else:
+            print "WRITING TO FILE: {}".format(self.outfile)
+            self.writer = cv2.VideoWriter(self.outfile, self.fourcc, self.fps, (self.w, self.h), True)
+        return self
+
+    def get_frame(self):
+        frame = self.cap.read()
         return frame
 
-    # Call capture with helper function
-    capture(exec_and_write) #loop until user finishes
+    def write_frame(self, frame):
+        if self.writer is None:
+            raise IOError("Outfile not writeable")
+        if self.bar is not None:
+            self.bar.next()
+        if frame is not None:
+            self.writer.write(frame)
 
-    # Clean up writer
-    writer.release()
+    def display(self, frame):
+        if self.window_name is None:
+            raise IOError("Window not set up")
+        if frame is not None:
+            # Display the resulting frame fullscreen
+            cv2.imshow(self.window_name, frame)
 
-# Process infile, apply transform frame by frame,
-# writing to outfile. Note: removes sound
-def execute(infile, outfile, transform=lambda x: x):
-    cap = cv2.VideoCapture(infile)
-
-    # Get necessary video attributes from file
-    fps = cap.get(cv2.cv.CV_CAP_PROP_FPS)
-    # HACK: if NaN, set to 30FPS
-    if np.isnan(fps):
-        fps = 30
-    else:
-        fps = int(round(fps))
-    fourcc = int(cap.get(cv2.cv.CV_CAP_PROP_FOURCC))
-    w = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-    h = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-    fc = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+    def run(self, transform):
+        missed_frames = 0
+        while(missed_frames < 90):
+            # Capture frame-by-frame
+            ret, frame = self.get_frame()
+            missed_frames += int(not ret)
+            # Our operations on the frame come here
+            transform_frame = transform(frame)
+            
+            if self.window_name is not None:
+                # Display frame
+                self.display(transform_frame)
+                
+                # Break if user presses q key
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
+            if self.outfile is not None:
+                # Write frame to file
+                self.write_frame(transform_frame)
     
-    # Initialize video writer and progress bar
-    writer = cv2.VideoWriter(outfile, fourcc, fps, (w, h), True)
-    bar = Bar('Applying Transform', max=fc)
+    def __exit__(self, exc_type, exc_value, traceback):
+        # When everything done, release the capture
+        if self.bar is not None:
+            self.bar.finish()
+        if self.cap is not None:
+            self.cap.release()
+        if self.writer is not None:
+            self.writer.release()
+        cv2.destroyAllWindows()
 
-    # Initialize first frame
-    ret, frame = cap.read()
-    # While there are frames in video, apply transform and write
-    while(ret):
-        bar.next()
-        frame = transform(frame)
-        writer.write(frame)
-        ret, frame = cap.read()
-    # When everything done, release the capture and writer
-    bar.finish()
-    cap.release()
-    writer.release()
+# capture live video and apply transformation function
+def capture(transform=lambda x: x):
+    with VideoHandler() as vh:
+        vh.run(transform)
 
 # Process infile, apply transform frame by frame,
 # and show it. Note: removes sound
 def show(infile, transform=lambda x: x):
+    with VideoHandler(infile=infile) as vh:
+        vh.run(transform)
 
-    # Initialize a full-screen window
-    cv2.namedWindow("test", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("test", cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
-    
-    # Helper function to apply transform to file
-    def transform_and_show(frame):
-        cv2.imshow("test", transform(frame))
+# Save Displayed video while executing H264
+def save(outfile, transform=lambda x: x):
+    with VideoHandler(outfile=outfile) as vh:
+        vh.run(transform)
 
-    # Write to a temporary file then execute using helper
-    outfile = 'temp_' + infile
-    execute(infile, outfile, transform_and_show)
-    cv2.destroyAllWindows()
+# Process infile, apply transform frame by frame,
+# writing to outfile. Note: removes sound
+def execute(infile, outfile, show=False, transform=lambda x: x):
+    with VideoHandler(infile=infile, outfile=outfile, open_window=show) as vh:
+        vh.run(transform)
 
 if __name__ == '__main__':
     # If running this as a script,
