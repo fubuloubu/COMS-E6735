@@ -1,0 +1,44 @@
+\documentclass[titlepage]{article}
+
+\author{Bryant Eisenbach}
+\title{Note Analyzer}
+\def\project{Note Analyzer }
+
+\def\authorship{B. Eisenbach (bje2113)}
+\input{formatting.tex}
+
+\begin{document}
+
+%\input{background.tex}
+
+\section{Prototype Updates}
+Since the Proposal, the Prototype phase has numerous updates to the methodology section.
+For simplicity of review, only the methodology section is included below.
+Please review the Proposal for the Abstract and Background sections about this project,
+which will be included in the Final Report.
+An assumption is made that familiarity with the project is a given.
+
+\section{Methodology}
+\input{methodology.tex}
+
+\section{Current Status}
+Due to the time spent getting the guitar and hand classifiers to work,
+little time was spent on the guitar and hand modeling algorithms,
+and subsequently the end goal of the guitar note prediction algorithm is incomplete.
+Once the classifiers are working reliably, the next step will be to show that
+the hand model algorithm can consistently identify the locations of the fingertips,
+and that the guitar model can accurately model the location of guitar frets and strings
+in order to match the two together with motion processing algorithms to detect discrete
+string pluck events.
+
+Additionally, future progress will initially be focused on getting the
+author's bass guitar to be recognized by the classifier
+(along with the author's hands and playing style, as well as enviromental conditions such as clothing and background choice).
+Once the pipeline is working reliably, additional player(s) and/or bass guitar(s) will
+be attempted. If time permits, perhaps the author's acoustic guitar will be attempted as well.
+
+\pagebreak
+\bibliography{bibliography.bib}{}
+\bibliographystyle{plain}
+
+\end{document}
