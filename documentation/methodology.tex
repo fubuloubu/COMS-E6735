@@ -8,7 +8,7 @@ In practice however this is not an easy task.
 The first aspect of this is to train a Cascade Classifier that can accurately find a pre-defined guitar.
 Cascade Classifiers are very susceptible to their input training images,
 which means an accurate classifier has to have many depictions of the objects
-for it's inteded usage scenario as possible \cite{opencv}\cite{codingrobin}.
+for it's inteded usage scenario as possible \cite{opencv,codingrobin}.
 Since there exists a nearly endless quantity of not only guitar shapes, body styles, colors, lengths, etc.
 that suites an individual owner's tastes (possibly more variability than even the owners themselves!),
 it is necessary to severely limit the guitars that are able to be detected by this layer.
@@ -27,6 +27,23 @@ and a specific clothing choice along with the specific guitar the player would b
 Again, future projects can look into diversifying this layer to account for all manner of player's
 skin color, clothing choices, playing styles and other differences that could affect classification.
 Truly, this layer has a significant depth to it that could be explored in a separate project in it's own right.
+\par
+The classifier input images were created using recorded video files:
+one set for positive images and one set for negative images.
+The positive video file contained the particular player playing the particular guitar
+and wearing the particular clothes intended for the final classifier to match against.
+The images were parsed by every Nth spaced frame (N = 10 was chosen)
+and each frame was manually reviewed for appropiateness and removed if necessary
+(about 40-45 positive images were chosen for each classifier).
+Those images were then cropped such that the guitar was the main component in the image,
+then fed to the sample generator to generate positive samples
+(10 randomized samples for each frame were created).
+The negative video was taken of the background with the particular player both in the scene
+and not in the scene.
+In particular, the player was instructed to play air guitar such that the hand positions
+without the guitar could be simulated as being part of the negatives.
+The images were parsed out of the video file by every Nth spaced frame (N=4) in order to generate
+a similar number of negative examples to the generated positive examples
 
 \subsubsection{Hand Classification}
 The next layer is to find the location of both fretting hand and plucking/picking/strumming hand in context of the guitar.
@@ -39,6 +56,13 @@ Several shortcuts could be taken to isolate the location of the hands by parsing
 and cutting the frame in half along the body/neck joint to segment the search along those two distinct parts.
 However the choice was made not to do this at this layer since the fretting and picking hands have distinctly
 different shapes that should be make classification between the two possible.
+\par
+The hand classifier input images were taken from the guitar training files.
+The positive images were manually cropped in each frame from the positive examples of the guitar classifier.
+The negative images were negative images from the guitar classifier, plus a few extra frames where
+the specific guitar was shown without the hand(s) present.
+A similar number of examples was generated in comparision to the guitar classifier,
+but less stages were employeed.
 
 \subsubsection{Guitar Modeling}
 The next stage of the overall algorithm is to create a model of the relevant aspects of the guitar we are interested in.
