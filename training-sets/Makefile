@@ -64,16 +64,16 @@ samples.vec: | samples
 	@python ../mergevec/mergevec.py -v samples -o samples.vec
 
 # Get main memory size (in kB), and return an third of that amount in megabytes for buffer sizing
-BUFFER_SIZE=$(shell grep MemTotal /proc/meminfo | awk '{print $$2}' | xargs -I {} expr {} / 1024 / 3)
+BUFFER_SIZE=2048#$(shell grep MemTotal /proc/meminfo | awk '{print $$2}' | xargs -I {} expr {} / 1024 / 3)
 # Get the number of processors on current computer and cut that in half
-NUM_THREADS=$(shell grep -c ^processor /proc/cpuinfo | xargs -I {} expr {} / 2)
+NUM_THREADS=2#$(shell grep -c ^processor /proc/cpuinfo | xargs -I {} expr {} / 2)
 
 .PHONY: classifier
 classifier: samples.vec
 	@echo " TRAIN $${PWD##*/}"
 	@rm -rf $@
 	@mkdir $@
-	@opencv_traincascade -data $@ \
+	opencv_traincascade -data $@ \
 		-vec $< -bg $(NEGATIVES) \
 		-numStages 20 -minHitRate 0.999 -maxFalseAlarmRate 0.5 -mode ALL \
 		-numPos $(call MULTIPLY,$(call GET_NUM_SAMPLES,$(POSITIVES)),10) \
@@ -81,8 +81,7 @@ classifier: samples.vec
 		$(call GET_W_AND_H,$(call FIRST_FILE,$(POSITIVES))) \
 		-numThreads $(NUM_THREADS) \
 	   	-precalcValBufSize $(BUFFER_SIZE) \
-		-precalcIdxBufSize $(BUFFER_SIZE) \
-		|| rm -rf $@
+		-precalcIdxBufSize $(BUFFER_SIZE)
 	@cp $@/cascade.xml $@.xml
 
 INTERMEDIATES=*_frames *_images fix_positives *s.txt samples samples.vec classifier
