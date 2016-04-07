@@ -1,50 +1,167 @@
-\subsection{Anticipated Methods}
-A system of this complexity will have many components that must come together to obtain the desired result.
-Firstly, it is advantageous that fretboard and plucking/fretting hands be in a standard location in order
-to work from a baseline when using other techniques (instead of searching for hand locations).
-Fortunately, there already exists well-used algorithms for feature identification and image transformation
-(reference OpenCV Documentation: \url{http://docs.opencv.org/trunk/dc/dc3/tutorial_py_matcher.html}).
+\subsection{Overview}
+The \project Project has many layers that must come together to obtain the desired result.
+The following is a description of these layers.
+\subsubsection{Guitar Classification}
+The first layer is to simply identify the location of the guitar within the video frame,
+as well as the location of the hands on the guitar.
+In practice however this is not an easy task.
+The first aspect of this is to train a Cascade Classifier that can accurately find a pre-defined guitar.
+Cascade Classifiers are very susceptible to their input training images,
+which means an accurate classifier has to have many depictions of the objects
+for it's inteded usage scenario as possible \cite{opencv,codingrobin}.
+Since there exists a nearly endless quantity of not only guitar shapes, body styles, colors, lengths, etc.
+that suites an individual owner's tastes (possibly more variability than even the owners themselves!),
+it is necessary to severely limit the guitars that are able to be detected by this layer.
+In particular due to time constraints, it is necessary to limit this to 1 or 2 specific guitars.
+Future projects can train better classifiers by adding more and more number of guitars,
+or otherwise diversify this layer using other techniques.
 \par
-Although this can theoretically be done only once per video to maintain the standard location, 
+Not only does the guitar classification layer need to recognize these guitars,
+but will also need to recognize these guitars in context of the players who play them.
+This means the ability to recognize the guitar despite player's hands and potentially clothing obscuring
+features of the guitar that may help to classify it.
+Additionally, the location of the hands can vary drastically as the player moves up and down the neck,
+or uses different picking/plucking/strumming techniques.
+In this project, this was done by only training with images that contain the specific player's hands
+and a specific clothing choice along with the specific guitar the player would be using.
+Again, future projects can look into diversifying this layer to account for all manner of player's
+skin color, clothing choices, playing styles and other differences that could affect classification.
+Truly, this layer has a significant depth to it that could be explored in a separate project in it's own right.
+\par
+The classifier input images were created using recorded video files:
+one set for positive images and one set for negative images.
+The positive video file contained the particular player playing the particular guitar
+and wearing the particular clothes intended for the final classifier to match against.
+The images were parsed by every Nth spaced frame (N = 10 was chosen)
+and each frame was manually reviewed for appropiateness and removed if necessary
+(about 40-45 positive images were chosen for each classifier).
+Those images were then cropped such that the guitar was the main component in the image,
+then fed to the sample generator to generate positive samples
+(10 randomized samples for each frame were created).
+The negative video was taken of the background with the particular player both in the scene
+and not in the scene.
+In particular, the player was instructed to play air guitar such that the hand positions
+without the guitar could be simulated as being part of the negatives.
+The images were parsed out of the video file by every Nth spaced frame (N=4) in order to generate
+a similar number of negative examples to the generated positive examples
+
+\subsubsection{Hand Classification}
+The next layer is to find the location of both fretting hand and plucking/picking/strumming hand in context of the guitar.
+Again, we are going to leverage the OpenCV Cascade Classifier trained using the specific player's hands overlaid on the
+specific guitar that player is to be playing.
+This classifier can be a bit more simplistic however since the context we are using this 
+within has much less variability then the guitar layer, 
+i.e. we know that the hands must be located on or near the fretboard and on or near the body of the guitar.
+Several shortcuts could be taken to isolate the location of the hands by parsing the guitar orientation
+and cutting the frame in half along the body/neck joint to segment the search along those two distinct parts.
+However the choice was made not to do this at this layer since the fretting and picking hands have distinctly
+different shapes that should be make classification between the two possible.
+\par
+The hand classifier input images were taken from the guitar training files.
+The positive images were manually cropped in each frame from the positive examples of the guitar classifier.
+The negative images were negative images from the guitar classifier, plus a few extra frames where
+the specific guitar was shown without the hand(s) present.
+A similar number of examples was generated in comparision to the guitar classifier,
+but less stages were employeed.
+
+\subsubsection{Guitar Modeling}
+The next stage of the overall algorithm is to create a model of the relevant aspects of the guitar we are interested in.
+This means we need to find the frets and strings of the guitar, and label them appropiately in context of the guitar.
+Specifically, we are looking to identify the string number (string 1, 2, 3, etc. corresponding to E, A, D, etc.)
+and fret number (frets 0, 1, 2, 3, etc. leveraging the nut and fret markers available on that specific guitar) and
+their intersections, as well as where the strings cross the picking area for our guitar model to be complete enough
+for us to indentify notes.
+\par
+Although this can theoretically be done only once per video given the guitar is in a standard location, 
 the reality is that performers tend to move the instrument at least subtlely while performing,
-so the scaling and rotation operations will need to be adjusted continually.
-Once the feature identification of the fretboard is obtained to a sufficient degree initially,
+and additionally move their hands significantly which obscures parts of the regions of interest,
+so the guitar model will need to be partially estimated until data is available to correct the obscured features.
+Thankfully, these locations and spacings are about the only standardized attributes of a guitar,
+so this can be done with minimal hassle given a sufficient amount of information in context of the lighting
+and occlusion of the instrument in the frame, once the guitar has been corrected to a standard location.
+\par
+The first stage of this process is to identify the neck and body of the guitar
+and determine the rotation angle and scale factor between the guitar in the current frame and the standard model.
+Again, since the player may be sublty moving the instrument with respect to neighboring frames,
+or moving toward or away from camera over time, 
+the scaling and rotation operations will need to be adjusted continually
+to ensure the guitar model can be continually tracked.
+Once the feature identification of the guitar is obtained to a high degree of confidence,
 the movement between shots of the fretboard is typically subtle enough that it can continue being tracked easily,
-potentially using standard motion tracking technicques instead of continued feature identification
-(if that is found to be more efficient).
+and this layer will simply monitor the guitar reference frame's movement with respect to the absolute camera reference frame.
 \par
+The frets and strings will then be identified using a threshold technique leveraging the fact that
+(for at least the target bass guitar owned by the player) these features are shiny and reflect
+the light sources much more significantly than the guitar body and neck.
+This technique may prove unreliable, however as stated previously it can be averaged over several
+frames until the guitar features are located to a high degree of confidence.
+The end product may leverage this by instructing a live user to move around their hands until
+the guitar model layer has successfully accomplished this, and inform the user when it is unable
+to track these quantities during operation.
 
-The next step would be to segment out the video into fretting and plucking hands in order to process those individual actions in context.
-When a note is plucked by the plucking hand, we can detect a sharp movement of the hand and the vibrating string,
-and we may use this data to detect which string was plucked in a shot.
-The initial approach will be to identify the vibrating string based on motion detection of the string in the shot.
-It may turn out to be more effective to combine this analysis with analysis on the hand motion (magintude of hand/finger movement)
-of the plucking hand to obtain an accurate indication of the pluck events.
+\subsubsection{Hand Modeling}
+From the hand classification stage we now need to identify the players fingering and plucking points
+by fitting a simplified hand model to each hand image obtained prior.
+For the purposes of this project, we will only consider finger plucking on the right hand of the player
+since the bass guitar is the only instrument under consideration
+(this only works for right handed guitar players, although a simple mirror operation could possibly correct this easily).
+Additionally, this means we are only interested in two points of the plucking hand
+(index and middle finger, only two finger plucking techniques will be considered)
+and four points of the fretting hand (no thumb fretting techniques will be considered) at this layer.
 \par
+The method used will be adapted from several papers concerning the real-time tracking of hands and fingers
+\cite{aslhand,handposes,fingertracking}.
+However, many simplifications can be made as the use case in this situation is much simpler.
+Specifically, the features of interest of plucking hand in this scenario are usually in one of four configurations
+(both fingers extended, both retracted, and one extended and other retracted, of course assuming a certain playing style)
+and the fretting hand fingers should align within regions of the fretboard as defined by the grid of frets and strings.
+Therefore the quality of the hand pose estimation need not be as great as is required for ASL recognition as long
+as we are able to extract these important feature-specific locations to an acceptable level of confidence.
 
-Finally, to accurately detect which specific note was produced when the pluck occurred,
-it is necessary to know the locations of the fingers and palm of the fretting hand on the fretboard,
-including whether a finger was depressed on the fretboard, the string was left open, or muting occurred.
-Research shows that a multi-step algorithm for indentifying hand and finger positions exists
-%(\url{http://web.mst.edu/~yinz/Papers/CVPR2015Hands.pdf})
-(\url{http://www.sciencedirect.com/science/article/pii/S0031320315002745/}, 
-\url{http://www.scopus.com/record/display.uri?eid=2-s2.0-0036857028&origin=inward&txGid=0})
-Such algorithms would form a prior basis for identifying finger locations on the fretboard.
-The system would track the location of fingers over time,
-then extract the note at exact the point in time when the pluck occurs and return that as the note played.
-The sequence of these notes would form the output of the program.
+\subsubsection{Note Production Music Model}
+The final step is to interpret the hand models in context of the guitar models and determine when a plucking event occurs.
+Several techniques may be employed here including frame averaging of these events to ensure that a plucking event
+is correctly determined.
+At this time, a several frame averaging algorithm will be employed leveraging the tempo of plucking events in context of 
+the overall time signature determined by analysis of the events, with care taken to ensure abrupt time signature changes
+are tracked accurately.
+This will also ensure that the human-readable output of this final layer makes sense in context of the music that it is
+analyzing, such that accuracy of the results obtained are at a level as to be useful to the end-user.
+The output at this layer will either be directly printed on the screen (as a rolling queue of note events),
+or piped to standard output such that the user can collect these events into a tablature file.
 
-\subsection{Anticipated Results}
+\subsection{Development Environment}
+Initial prototyping work will be done using Python and OpenCV.
+The layers are defined as individual modules such that accuracy of each individual stage can be verified as the design progresses.
+Additional training modules for the Cascade Classifiers are located in an adjacent environment
+and links to the XML output are maintained such that these classifiers are a part of the configuration of the final product.
+As the project progresses an implementation in C++ will be done in order to substantially optimize the processing of the utility.
+The performance goal for this application would be on order of the running time of the video.
+A system that can operate in real time would be considered succesful and open up a larger array of possibilities and use cases.
+\par
+The system will be constructed as a command line utility;
+either operating on an input video file of a specific format, with the option to
+print out the resultant tabulature to standard output (which may be piped to a file)
+or printing in-frame for use as a teaching aid.
+For verification, the obtained output of the program using the standard output method
+will be saved to a file and compared using an algorithm that will compare
+to a corresponding desired output file that will be constructed by hand for the input video.
+
+\subsection{Evaluation}
 Results will be prototyped and verified via a small collection of ~2 min video files
 (approximately 50 total).
-The system will be vetted under a variety of circumstances:
-different lighting conditions (5),
-different instruments (10),
-and different performers (20).
+The system will be vetted under a few different circumstances:
+standard performer, lighting, and instruments (20),
+standard enviroment with different fretting techniques (10),
+different lighting conditions (10),
+different instruments (5),
+and different performers (5).
 The system will be designed to adequetely handle these different circumstances
-without requiring enviroment-specific processing directives.
+without requiring enviroment-specific processing directives,
+except in the case of the different instruments/performers,
+where application-specific classifier files will be used.
 \par
-The video files will be reviewed prior to testing and the desired output will be produced by hand.
+The video files will be reviewed prior to testing and the desired output will be synthesized by hand.
 The obtained output of the system will be measured against the desired output via the following:
 \begin{itemize}
     \item Each note occurence in the desired output will be matched to a corresponding note in the obtained output
@@ -59,14 +176,5 @@ The obtained output of the system will be measured against the desired output vi
 The overall goal for correctness would be 90\%.
 This is an agressive goal for a computer vision application,
 especially for one measuring the location of fingers on a hand.
-\par
-The system will be constructed as a command line utility; operating on an input video file of a specific format,
-then printing out the resultant tabulature to standard output (which may be piped to a file).
-For verification, the obtained output of the program will be saved to a file and compared using the algorithm
-described above to a corresponding desired output file that will be constructed by hand.
-\par
-Initial prototyping work will be done using Python.
-However, as the project progresses a move to C++ will be done in order to speed up the processing of the utility.
-The performance goal for this application would be on order of the running time of the video.
-A system that can operate in real time would be considered succesful and open up a larger array of possibilities and use cases.
-%http://www.8notes.com/tab/ - tab to MIDI
+Additionally, the obtained tablature file can attempt to be converted to midi representation
+using a conversion utility such as \cite{8notes}.
