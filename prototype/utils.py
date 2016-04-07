@@ -8,12 +8,36 @@ def mirror(frame):
     return cv2.flip(frame,1)
 
 # Grayscale filter
-def greyscale(frame):
+def grayscale(frame):
     return cv2.cvtColor( frame, cv2.COLOR_RGB2GRAY )
 
+def colorify(frame):
+    return cv2.cvtColor( frame, cv2.COLOR_GRAY2RGB )
+
 # Gaussian filter
-def gaussian(frame, ksize=(1, 1), sigmaX=0, sigmaY=0, borderType=cv2.BORDER_CONSTANT):
-    return cv2.GaussianBlur(frame, ksize, sigmaX, sigmaY, borderType)
+def gaussian(frame, ksize=(1, 1), sigma=(3, 3)):
+    return cv2.GaussianBlur(frame, ksize, sigma[0], sigma[1], cv2.BORDER_CONSTANT)
+
+# Apply grayscale thresholding to frame using gaussian blur and a MEAN adaptive threshold
+def adaptivethreshold(frame, maxValue=250, blockSize=7, C=9):
+    frame = gaussian(frame)
+    frame = grayscale(frame)
+    return cv2.adaptiveThreshold(frame, maxValue, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, blockSize, C)
+
+# Edge Detect Transformation
+def edgedetect(frame, threshold1=50, threshold2=300, aperature_size=5):
+    frame = gaussian(frame)
+    frame = grayscale(frame)
+    return cv2.Canny(frame, threshold1, threshold2, aperature_size)
+
+# Detect lines in frame
+def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLength=30, maxLineGap=5):
+    frame = preprocessor(frame)
+    # rho = 1, theta = Pi/180 or 1 deg
+    lines = cv2.HoughLinesP(frame, 1, cv2.cv.CV_PI/180, threshold, 0, minLineLength, maxLineGap)
+    if lines is None:
+        return []
+    return lines.tolist()[0]
 
 # Crop frame around rectangle
 def crop(frame, rect=None):
@@ -82,6 +106,33 @@ class Cascade:
             self.detected_obj = objects[0]
         return np.asmatrix(self.detected_obj).tolist()
 
+def cluster1D(items, valueFunction=None, combinationFunction=None, numGroups=None):
+    if valueFunction is None:
+        raise ValueError("value function not set")
+    if combinationFunction is None:
+        raise ValueError("combination function not set")
+    if numGroups is None:
+        raise ValueError("Number of desired groups not set")
+    # Sort list using value function
+    sorted(items, key=valueFunction)
+    compare = lambda l, m, r: abs(valueFunction(l) - valueFunction(m)) < abs(valueFunction(r) - valueFunction(m))
+    cluster = items
+    while len(cluster) > numGroups:
+        items = cluster
+        for i, item in enumerate(items):
+            if i == len(items)-1:
+                break
+            if i == 0:
+                cluster = [item]
+                lastitem = item
+                continue
+            nextitem = items[i+1]
+            if compare(lastitem, item, nextitem):
+                cluster.append(combinationFunction(lastitem, cluster.pop()))
+            lastitem = item
+
+    return cluster
+
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc"):
     # Display settings
@@ -119,20 +170,28 @@ def addtext(frame, text="Hello, world!", location="cc"):
                 fontFace, fontScale, color, thickness, lineType)
     return frame
 
-# Convert rectangles into shape point list for below
+# Defaults for drawing functions
+color = (255, 0, 255) # magenta
+thickness = 1
+lineType = cv2.CV_AA
+
+# Add a line or list of lines to the frame
+def addline(frame, line):
+    if len(line) == 4:
+        [x1, y1, x2, y2] = line
+        cv2.line(frame, (x1, y1), (x2, y2), color, thickness, lineType) 
+    return frame
+
+# Add a rectangle or list of rectangles to the frame
 def addrectangle(frame, rect):
-    if len(rect) == 0:
-        return frame
-    for x1, y1, x2, y2 in rect:
-        pts = [(x1, y1),(x1, y2),(x2, y2),(x2, y1)]
-    return addshape(frame, pts)
+    if len(rect) == 4:
+        [x1, y1, x2, y2] = rect
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness, lineType)
+    return frame
 
 # Add shape described by list of points in clockwise direction to frame
 # note: last point connects to first point
 def addshape(frame, shape_pts):
-    color = (255, 0, 255) # magenta
-    thickness = 1
-    lineType = cv2.CV_AA
     pts = np.array(shape_pts, np.int32)
     pts = pts.reshape((-1,1,2))
     cv2.polylines(frame, [pts], True, color, thickness, lineType)
@@ -164,10 +223,14 @@ class VideoHandler:
             cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
         else:
             print "WARNING: NO DISPLAY SET!"
+        
+        # Initialize capture object
         self.cap = cv2.VideoCapture(self.infile)
-
+        
+        # Get/set codec information for video file
+        default_codec = 'X264'
         if self.infile == 0:
-            self.codec = 'IYUV'
+            self.codec = default_codec
             self.fc = None
             self.bar = None
         else:
@@ -180,8 +243,8 @@ class VideoHandler:
                 # Characters are backwards, so decode and reverse
                 self.codec = bytearray.fromhex(fourcc_hex).decode()[::-1]
             print 'VIDEO CODEC: {}'.format(self.codec)
-            if self.codec == '1cva':
-                self.codec = 'H264'
+            if self.codec == 'avc1':
+                self.codec = default_codec
                 print 'CHANGED TO: {}'.format(self.codec)
             
             # We're processing a video so setup the progress bar
@@ -193,7 +256,7 @@ class VideoHandler:
         self.fps = self.cap.get(cv2.cv.CV_CAP_PROP_FPS)
         # HACK: if NaN, set to 30FPS
         if np.isnan(self.fps):
-            self.fps = 10
+            self.fps = 20
         else:
             self.fps = int(round(self.fps))
         print "FPS: {}".format(self.fps)
@@ -209,6 +272,7 @@ class VideoHandler:
             self.writer = None
         else:
             print "WRITING TO FILE: {}".format(self.outfile)
+            self.fourcc = -1 #DEBUG
             self.writer = cv2.VideoWriter(self.outfile, self.fourcc, self.fps, (self.w, self.h), True)
         return self
 
@@ -232,11 +296,9 @@ class VideoHandler:
             cv2.imshow(self.window_name, frame)
 
     def run(self, transform):
-        missed_frames = 0
-        while(missed_frames < 90):
-            # Capture frame-by-frame
-            ret, frame = self.get_frame()
-            missed_frames += int(not ret)
+        # Get first frame
+        ret, frame = self.get_frame()
+        while(ret):
             # Our operations on the frame come here
             transform_frame = transform(frame)
             
@@ -251,6 +313,9 @@ class VideoHandler:
             if self.outfile is not None:
                 # Write frame to file
                 self.write_frame(transform_frame)
+            
+            # Get next frame so while loop can check status
+            ret, frame = self.get_frame()
     
     def __exit__(self, exc_type, exc_value, traceback):
         # When everything done, release the capture
@@ -261,6 +326,10 @@ class VideoHandler:
         if self.writer is not None:
             self.writer.release()
         cv2.destroyAllWindows()
+
+def debug(transform=lambda x: x):
+    with VideoHandler(open_window=False) as vh:
+        vh.run(transform)
 
 # capture live video and apply transformation function
 def capture(transform=lambda x: x):
