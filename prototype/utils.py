@@ -69,9 +69,9 @@ class Cascade:
        self.cc = cv2.CascadeClassifier(training_file)
        self.detected_obj = None
 
-    def detect(self, frame, scaleFactor=1.3, minNeighbors=5):
+    def detect(self, frame, scaleFactor=1.1, minNeighbors=5, minSize=(400,200), maxSize=(1600,800)):
         objects = self.cc.detectMultiScale(frame, scaleFactor, 
-                minNeighbors, flags=cv2.CASCADE_SCALE_IMAGE)
+                minNeighbors, cv2.CASCADE_SCALE_IMAGE, minSize, maxSize)
         print 'Number of objects found: {}'.format(len(objects))
         # function returns tuple if nothing was found
         # else returns numpy ndarray list of rectangles
@@ -79,7 +79,9 @@ class Cascade:
             return []
         # Turn the [x, y, w, h] rectangle into
         # an [x1, y1, x2, y2] rectangle
+        print reduce(lambda t, o: t + "\nx: {}, y: {}, w: {}, h: {}".format(*o), ["Objects:"] + np.asmatrix(objects).tolist())
         objects[:, 2:] += objects[:, :2]
+        return np.asmatrix(objects).tolist()
         # If more than one object, try to find
         # closest to prior selection
         if len(objects) != 1:
@@ -115,7 +117,7 @@ def cluster1D(items, valueFunction=None, combinationFunction=None, numGroups=Non
         raise ValueError("Number of desired groups not set")
     # Sort list using value function
     sorted(items, key=valueFunction)
-    compare = lambda l, m, r: abs(valueFunction(l) - valueFunction(m)) < abs(valueFunction(r) - valueFunction(m))
+    compare = lambda l, r: valueFunction(l) < valueFunction(r)
     cluster = items
     while len(cluster) > numGroups:
         items = cluster
@@ -127,7 +129,7 @@ def cluster1D(items, valueFunction=None, combinationFunction=None, numGroups=Non
                 lastitem = item
                 continue
             nextitem = items[i+1]
-            if compare(lastitem, item, nextitem):
+            if compare(lastitem, item) and compare(item, nextitem):
                 cluster.append(combinationFunction(lastitem, cluster.pop()))
             lastitem = item
 
