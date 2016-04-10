@@ -11,8 +11,31 @@ def mirror(frame):
 def grayscale(frame):
     return cv2.cvtColor( frame, cv2.COLOR_RGB2GRAY )
 
+# Undoes grayscale conversion for display
+# NOTE: Still is grayscale, just different type array
 def colorify(frame):
     return cv2.cvtColor( frame, cv2.COLOR_GRAY2RGB )
+
+# RGB to HSV color scheme
+def rgb2hsv(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+# HSV to RGB color scheme
+def hsv2rgb(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
+
+# RGB to YCrCb color scheme
+def rgb2ycrcb(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
+
+# YCrCb to RGB color scheme
+def ycrcb2rgb(frame):
+    return cv2.cvtColor(frame, cv2.COLOR_YCR_CB2BGR)
+
+def inrange(frame, lower, upper):
+    lower = np.array(lower, dtype = "uint8")
+    upper = np.array(upper, dtype = "uint8")
+    return cv2.inRange(frame, lower, upper)
 
 # Gaussian filter
 def gaussian(frame, ksize=(1, 1), sigma=(3, 3)):
@@ -38,6 +61,25 @@ def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLengt
     if lines is None:
         return []
     return lines.tolist()[0]
+
+# Get contours for the input black/white image
+def getcontours(frame):
+    contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print "Number of contours found: {}".format(len(contours))
+    return contours
+
+# Detect skin using thresholding, attributed to Sam Kahn:
+# https://github.com/seereality/opencvDemos/blob/master/skinDetect.py
+def skindetect(frame, minYCrCb=(0,133,77), maxYCrCb=(255,173,127)):
+    # Convert to YCrCb
+    frameYCrCb = rgb2ycrcb(frame)
+    # Find region with skin tone in YCrCb image
+    skinRegion = inrange(frameYCrCb, minYCrCb, maxYCrCb)
+    # Contourize that region and extract
+    contours = getcontours(skinRegion)
+    # Only return contours with a large enough area to be skin
+    contours = filter(lambda c: cv2.contourArea(c) > 1000, contours)
+    return contours
 
 # Crop frame around rectangle
 def crop(frame, rect=None):
@@ -189,6 +231,12 @@ def addrectangle(frame, rect):
     if len(rect) == 4:
         [x1, y1, x2, y2] = rect
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness, lineType)
+    return frame
+    
+# Add a contour to the frame
+def addcontour(frame, contour):
+    # contourIdx = -1, if negative draw all
+    cv2.drawContours(frame, contour, -1, color, thickness, lineType)
     return frame
 
 # Add shape described by list of points in clockwise direction to frame
