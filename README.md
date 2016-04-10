@@ -1,1 +1,1 @@
-# Term Project
+# COMS-E6735 Term Project
