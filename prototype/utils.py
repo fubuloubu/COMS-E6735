@@ -65,7 +65,7 @@ def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLengt
 # Get contours for the input black/white image
 def getcontours(frame):
     contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    print "Number of contours found: {}".format(len(contours))
+    sys.stderr.write("Contours found: {}".format(len(contours)))
     return contours
 
 # Detect skin using thresholding, attributed to Sam Kahn:
@@ -93,7 +93,7 @@ def crop(frame, rect=None):
 # By moving upper left and lower right vertices
 # in the +x and +y direction by bounding box
 def uncrop(inner_rect, outer_rect):
-    if outer_rect is None or inner_rect is None:
+    if len(outer_rect) == 0 or len(inner_rect) == 0:
         return inner_rect
     else:
         return inner_rect + outer_rect\
@@ -114,14 +114,13 @@ class Cascade:
     def detect(self, frame, scaleFactor=1.1, minNeighbors=5, minSize=(400,200), maxSize=(1600,800)):
         objects = self.cc.detectMultiScale(frame, scaleFactor, 
                 minNeighbors, cv2.CASCADE_SCALE_IMAGE, minSize, maxSize)
-        print 'Number of objects found: {}'.format(len(objects))
+        sys.stderr.write("Objects Detected: {}".format(len(objects)))
         # function returns tuple if nothing was found
         # else returns numpy ndarray list of rectangles
         if len(objects) == 0:
             return []
         # Turn the [x, y, w, h] rectangle into
         # an [x1, y1, x2, y2] rectangle
-        print reduce(lambda t, o: t + "\nx: {}, y: {}, w: {}, h: {}".format(*o), ["Objects:"] + np.asmatrix(objects).tolist())
         objects[:, 2:] += objects[:, :2]
         return np.asmatrix(objects).tolist()
         # If more than one object, try to find
@@ -306,6 +305,7 @@ class VideoHandler:
         self.fps = self.cap.get(cv2.cv.CV_CAP_PROP_FPS)
         # HACK: if NaN, set to 30FPS
         if np.isnan(self.fps):
+            print "WARNING: NO FPS SET!"
             self.fps = 20
         else:
             self.fps = int(round(self.fps))
@@ -377,19 +377,25 @@ class VideoHandler:
             self.writer.release()
         cv2.destroyAllWindows()
 
-def debug(transform=lambda x: x):
-    with VideoHandler(open_window=False) as vh:
-        vh.run(transform)
-
-# capture live video and apply transformation function
+# Capture live video and apply transformation function
 def capture(transform=lambda x: x):
     with VideoHandler() as vh:
+        vh.run(transform)
+
+# Capture live video and silently apply transformation
+def debug(transform=lambda x: x):
+    with VideoHandler(open_window=False) as vh:
         vh.run(transform)
 
 # Process infile, apply transform frame by frame,
 # and show it. Note: removes sound
 def show(infile, transform=lambda x: x):
     with VideoHandler(infile=infile) as vh:
+        vh.run(transform)
+
+# Process infile, apply transform frame by frame, no display
+def test(infile, transform=lambda x: x):
+    with VideoHandler(infile=infile, open_window=False) as vh:
         vh.run(transform)
 
 # Save Displayed video while executing H264
