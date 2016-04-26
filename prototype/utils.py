@@ -1,11 +1,36 @@
 #!/usr/bin/python
 import cv2
 import numpy as np
+import random
 from progress.bar import Bar
 
 # Flip video around
 def mirror(frame):
     return cv2.flip(frame,1)
+
+# Crop frame around rectangle
+def crop(frame, rect=None):
+    if rect is None:
+        return frame
+    else:
+        for x1, y1, x2, y2 in rect:
+            return frame[y1:y2, x1:x2]
+
+# Re-reference rectangle out of cropped frame
+# By moving upper left and lower right vertices
+# in the +x and +y direction by bounding box
+def uncrop(inner_rect, outer_rect):
+    if len(outer_rect) == 0 or len(inner_rect) == 0:
+        return inner_rect
+    else:
+        return inner_rect + outer_rect\
+            *np.matrix('1 0 1 0; 0 1 0 1; 0 0 0 0; 0 0 0 0')
+
+# Rotation function
+def rotate(frame, deg=0):
+    rows,cols,k = frame.shape
+    M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
+    return cv2.warpAffine(frame,M,(cols,rows))
 
 # Grayscale filter
 def grayscale(frame):
@@ -62,6 +87,44 @@ def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLengt
         return []
     return lines.tolist()[0]
 
+# Compute a linemodel 'lm' from a line 'l'
+def tolinemodel(l):
+    lm = {}
+    lm["line"] = l
+    lm["length"] = math.sqrt((l[1]-l[3])**2 + (l[0]-l[2])**2)
+    if l[0] == l[2]:
+        lm["slope"] = float('inf') # vertical line
+        lm["intercept"] = float('inf') # y-intercept is undefined
+        lm["angle"] = 90 # vertical line (in deg)
+        lm["origin"] = l[0] # dist from origin for vertical line is simply x
+    else:
+        lm["slope"] = (l[3]-l[1])/float(l[2]-l[0]) # m = y2 -y1 / x2 - x1
+        lm["intercept"] = l[1] - lm["slope"]*l[0] # b = y - mx
+        lm["angle"] = math.atan(lm["slope"]) # theta = atan(m), ignore quadrants
+        lm["origin"] = lm["intercept"]*math.cos(lm["angle"]) # shortest distance from origin
+    return lm
+
+# Compute a linemodel 'lm' from combining two line models 'lm1', 'lm2'
+def combine_linemodel(lm1, lm2):
+    lm = {}
+    # Average all this stuff
+    lm["intercept"] = (lm1["intercept"] + lm2["intercept"])/2 # b = y - mx
+    lm["origin"] = (lm1["origin"] + lm2["origin"])/2
+    lm["angle"] = math.acos(lm["origin"]/lm["intercept"])
+    lm["slope"] = math.tan("angle")
+    # Make the longest line possible
+    perp_ang = math.radians(90) - lm["angle"]
+    def squash_line(l):
+        d = l["origin"] - lm["origin"] # perpidicular distance to combined line
+        # squash begin points of line onto combined ray
+        begin = [l["line"][0] - d*math.cos(perp_ang), l["line"][1] - d*math.sin(perp_ang)]
+        end = [l["line"][2] - d*math.cos(perp_ang), l["line"][3] - d*math.sin(perp_ang)]
+        return [begin[0], begin[1], end[0], end[1]]
+    length = lambda l: math.sqrt((l[3]-l[1])**2 + (l[2]-l[0])**2)
+    lm["line"] = max(squash_line(lm1), squash_line(lm2), key=length)
+    lm["length"] = (lm["line"][3]-lm["line"][1])/float(lm["line"][2]-lm["line"][0])
+    return lm
+
 # Get contours for the input black/white image
 def getcontours(frame):
     contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -80,30 +143,6 @@ def skindetect(frame, minYCrCb=(0,133,77), maxYCrCb=(255,173,127)):
     # Only return contours with a large enough area to be skin
     contours = filter(lambda c: cv2.contourArea(c) > 1000, contours)
     return contours
-
-# Crop frame around rectangle
-def crop(frame, rect=None):
-    if rect is None:
-        return frame
-    else:
-        for x1, y1, x2, y2 in rect:
-            return frame[y1:y2, x1:x2]
-
-# Re-reference rectangle out of cropped frame
-# By moving upper left and lower right vertices
-# in the +x and +y direction by bounding box
-def uncrop(inner_rect, outer_rect):
-    if len(outer_rect) == 0 or len(inner_rect) == 0:
-        return inner_rect
-    else:
-        return inner_rect + outer_rect\
-            *np.matrix('1 0 1 0; 0 1 0 1; 0 0 0 0; 0 0 0 0')
-
-# Rotation function
-def rotate(frame, deg=0):
-    rows,cols,k = frame.shape
-    M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
-    return cv2.warpAffine(frame,M,(cols,rows))
 
 # Helper class to use Cascade Classifier functionality
 class Cascade:
@@ -149,32 +188,57 @@ class Cascade:
             self.detected_obj = objects[0]
         return np.asmatrix(self.detected_obj).tolist()
 
-def cluster1D(items, valueFunction=None, combinationFunction=None, numGroups=None):
-    if valueFunction is None:
-        raise ValueError("value function not set")
-    if combinationFunction is None:
-        raise ValueError("combination function not set")
-    if numGroups is None:
+import operator as op
+# Implementation of Lloyd's algorithm
+# Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
+def cluster1D(items, origin=None, distance=None, compare=None, combine=None, K=None):
+    if origin is None:
+        raise ValueError("Origin not set")
+    if distance is None:
+        raise ValueError("Distance function not set")
+    if compare is None:
+        raise ValueError("Comparision function not set")
+    if combine is None:
+        raise ValueError("Combination function not set")
+    if K is None:
         raise ValueError("Number of desired groups not set")
-    # Sort list using value function
-    sorted(items, key=valueFunction)
-    compare = lambda l, r: valueFunction(l) < valueFunction(r)
-    cluster = items
-    while len(cluster) > numGroups:
-        items = cluster
-        for i, item in enumerate(items):
-            if i == len(items)-1:
-                break
-            if i == 0:
-                cluster = [item]
-                lastitem = item
-                continue
-            nextitem = items[i+1]
-            if compare(lastitem, item) and compare(item, nextitem):
-                cluster.append(combinationFunction(lastitem, cluster.pop()))
-            lastitem = item
+    X = sorted(items, key=lambda x: distance(x , origin))
+    def cluster_points(X, mu):
+        clusters  = {}
+        for x in X:
+            bestmukey = min([(i[0], distance(x, mu[i[0]])) \
+                    for i in enumerate(mu)], key=lambda t:t[1])[0]
+            try:
+                clusters[bestmukey].append(x)
+            except KeyError:
+                clusters[bestmukey] = [x]
+        return clusters
+     
+    def reevaluate_centers(mu, clusters):
+        newmu = []
+        keys = sorted(clusters.keys())
+        for k in keys:
+            newmu.append(reduce(combine, clusters[k]))
+        return newmu
+     
+    def has_converged(mu, oldmu):
+        if len(mu) != len(oldmu):
+            return false
+        else:
+            return reduce(lambda r, v: r and v, \
+                map(lambda (v1, v2): compare(v1, v2, op.eq), zip(mu, oldmu)))
+     
+    # Initialize to K centers randomly chosen from list X
+    oldmu = random.sample(X, K)
+    mu = random.sample(X, K)
+    while not has_converged(mu, oldmu):
+        oldmu = mu
+        # Assign all points in X to clusters
+        clusters = cluster_points(X, mu)
+        # Reevaluate centers
+        mu = reevaluate_centers(oldmu, clusters)
 
-    return cluster
+    return sorted(mu, key=lambda x: distance(x, origin))
 
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc"):
