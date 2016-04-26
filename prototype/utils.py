@@ -191,7 +191,7 @@ class Cascade:
 import operator as op
 # Implementation of Lloyd's algorithm
 # Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
-def cluster1D(items, origin=None, distance=None, compare=None, combine=None, K=None):
+def cluster(items, origin=None, distance=None, compare=None, combine=None, K=None):
     if origin is None:
         raise ValueError("Origin not set")
     if distance is None:
