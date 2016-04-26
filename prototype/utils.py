@@ -59,6 +59,7 @@ def rgb2ycrcb(frame):
 def ycrcb2rgb(frame):
     return cv2.cvtColor(frame, cv2.COLOR_YCR_CB2BGR)
 
+# Threshold frame to between lower and upper (inside = white, outside = black)
 def inrange(frame, lower, upper):
     lower = np.array(lower, dtype = "uint8")
     upper = np.array(upper, dtype = "uint8")
@@ -67,6 +68,16 @@ def inrange(frame, lower, upper):
 # Gaussian filter
 def gaussian(frame, ksize=(1, 1), sigma=(3, 3)):
     return cv2.GaussianBlur(frame, ksize, sigma[0], sigma[1], cv2.BORDER_CONSTANT)
+
+# Erosion filter
+def erode(frame, kernalSize=(3, 3), iterations=2):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernalSize)
+    return cv2.erode(frame, kernel, iterations=iterations)
+
+# Dialation filter
+def dialate(frame, kernalSize=(3, 3), iterations=2):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernalSize)
+    return cv2.dilate(frame, kernel, iterations=iterations)
 
 # Apply grayscale thresholding to frame using gaussian blur and a MEAN adaptive threshold
 def adaptivethreshold(frame, maxValue=250, blockSize=7, C=9):
@@ -163,20 +174,26 @@ def combine_linemodel(lm1, lm2):
 # Get contours for the input black/white image
 def getcontours(frame):
     contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    sys.stderr.write("Contours found: {}".format(len(contours)))
     return contours
 
 # Detect skin using thresholding, attributed to Sam Kahn:
 # https://github.com/seereality/opencvDemos/blob/master/skinDetect.py
-def skindetect(frame, minYCrCb=(0,133,77), maxYCrCb=(255,173,127)):
-    # Convert to YCrCb
-    frameYCrCb = rgb2ycrcb(frame)
-    # Find region with skin tone in YCrCb image
-    skinRegion = inrange(frameYCrCb, minYCrCb, maxYCrCb)
+# Erosion and Dialation tricks attributed to pyimagesearch
+# http://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/
+def skindetect(frame, minthresh=(0,133,77), maxthresh=(255,173,127)):
+    # Convert to HSV
+    frame = rgb2ycrcb(frame)
+    # Find region with skin tone in HSV image
+    frame = inrange(frame, minthresh, maxthresh)
+    # Prefiltering
+    frame = gaussian(frame)
+    frame = erode(frame)
+    frame = dialate(frame)
     # Contourize that region and extract
-    contours = getcontours(skinRegion)
+    contours = getcontours(frame)
     # Only return contours with a large enough area to be skin
     contours = filter(lambda c: cv2.contourArea(c) > 1000, contours)
+    sys.stderr.write("Skin areas found: {}\n".format(len(contours)))
     return contours
 
 # Helper class to use Cascade Classifier functionality
@@ -188,7 +205,7 @@ class Cascade:
     def detect(self, frame, scaleFactor=1.1, minNeighbors=5, minSize=(400,200), maxSize=(1600,800)):
         objects = self.cc.detectMultiScale(frame, scaleFactor, 
                 minNeighbors, cv2.CASCADE_SCALE_IMAGE, minSize, maxSize)
-        sys.stderr.write("Objects Detected: {}".format(len(objects)))
+        sys.stderr.write("Objects Detected: {}\n".format(len(objects)))
         # function returns tuple if nothing was found
         # else returns numpy ndarray list of rectangles
         if len(objects) == 0:
@@ -341,8 +358,9 @@ def addrectangle(frame, rect):
 # Add a contour to the frame
 def addcontour(frame, contour):
     # contourIdx = -1, if negative draw all
-    cv2.drawContours(frame, contour, -1, color, thickness, lineType)
-    return frame
+    #cv2.drawContours(frame, contour, -1, color, thickness, lineType)
+    #return frame
+    return addshape(frame, contour)
 
 # Add shape described by list of points in clockwise direction to frame
 # note: last point connects to first point
