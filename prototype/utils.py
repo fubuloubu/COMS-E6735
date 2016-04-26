@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import random
 import math
+import sys
 from progress.bar import Bar
 
 # Flip video around
@@ -238,7 +239,7 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         raise ValueError("Number of desired groups not set")
     
     X = sorted(items, key=lambda x: distance(x , origin))
-    print "Length of sorted items: {}".format(len(X))
+    sys.stderr.write("Length of sorted items: {}\n".format(len(X)))
     
     def cluster_points(X, mu):
         clusters  = {}
@@ -246,7 +247,7 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
             bestmukey = min([(i[0], distance(x, mu[i[0]])) \
                     for i in enumerate(mu)], key=lambda t:t[1])[0]
             
-            print "Best key for x={}: {}".format(x, bestmukey)
+            sys.stderr.write("Best key for x={}: {}\n".format(x, bestmukey))
             try:
                 clusters[bestmukey].append(x)
             except KeyError:
@@ -274,10 +275,10 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         oldmu = mu
         # Assign all points in X to clusters
         clusters = cluster_points(X, mu)
-        print "Length of clusters: {}".format(len(clusters))
+        sys.stderr.write("Length of clusters: {}\n".format(len(clusters)))
         # Reevaluate centers
         mu = reevaluate_centers(oldmu, clusters)
-        print "Length of centroids: {}".format(len(mu))
+        sys.stderr.write("Length of centroids: {}\n".format(len(mu)))
     
     return sorted(mu, key=lambda x: distance(x, origin))
 
