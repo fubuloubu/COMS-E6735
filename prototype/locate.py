@@ -1,5 +1,7 @@
 #!/usr/bin/python
+import sys
 import utils
+progname = 'locate.py'
 
 # Find body of guitar for use in hand location algorithms
 guitar_cascade = utils.Cascade('guitar_classifier.xml')
@@ -41,11 +43,22 @@ def main(frame):
     # Get guitar and hand bounding boxes
     (guitar_coords, pickhand_coords, frethand_coords) = \
         guitar_and_hands(frame)
+    # Print for debugging and testing purposes
+    sys.stderr.write('''
+{0}: Stats
+Guitar Coordinates:           {1}
+Picking Hand Coordinates:     {2}
+Fretting Hand Coordinates:    {3}
+{0}: Stats
+'''.format(progname, guitar_coords, pickhand_coords, frethand_coords) ) 
     # Add rectangles for debugging purposes around them
     frame = utils.addrectangle(frame, guitar_coords)
-    frame = utils.addrectangle(frame, picking_hand_coords)
-    frame = utils.addrectangle(frame, fretting_hand_coords)
+    frame = utils.addrectangle(frame, pickhand_coords)
+    frame = utils.addrectangle(frame, frethand_coords)
     return frame
 
 if __name__ == '__main__':
-    utils.capture(main)
+    if len(sys.argv) == 2:
+        utils.test(sys.argv[1], main)
+    else:
+        utils.capture(main)
