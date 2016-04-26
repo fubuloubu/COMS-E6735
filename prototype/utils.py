@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 import random
+import math
 from progress.bar import Bar
 
 # Flip video around
@@ -101,28 +102,61 @@ def tolinemodel(l):
         lm["slope"] = (l[3]-l[1])/float(l[2]-l[0]) # m = y2 -y1 / x2 - x1
         lm["intercept"] = l[1] - lm["slope"]*l[0] # b = y - mx
         lm["angle"] = math.atan(lm["slope"]) # theta = atan(m), ignore quadrants
-        lm["origin"] = lm["intercept"]*math.cos(lm["angle"]) # shortest distance from origin
+        lm["origin"] = int(lm["intercept"]*math.cos(lm["angle"])) # shortest distance from origin
     return lm
 
 # Compute a linemodel 'lm' from combining two line models 'lm1', 'lm2'
 def combine_linemodel(lm1, lm2):
     lm = {}
+    
     # Average all this stuff
-    lm["intercept"] = (lm1["intercept"] + lm2["intercept"])/2 # b = y - mx
     lm["origin"] = (lm1["origin"] + lm2["origin"])/2
-    lm["angle"] = math.acos(lm["origin"]/lm["intercept"])
-    lm["slope"] = math.tan("angle")
-    # Make the longest line possible
+    lm["angle"] = (lm1["angle"] + lm2["angle"])/2
+    
+    # Angle of distance measurement perpidicular to the line
+    lm["slope"] = math.tan(lm["angle"])
     perp_ang = math.radians(90) - lm["angle"]
-    def squash_line(l):
-        d = l["origin"] - lm["origin"] # perpidicular distance to combined line
-        # squash begin points of line onto combined ray
-        begin = [l["line"][0] - d*math.cos(perp_ang), l["line"][1] - d*math.sin(perp_ang)]
-        end = [l["line"][2] - d*math.cos(perp_ang), l["line"][3] - d*math.sin(perp_ang)]
-        return [begin[0], begin[1], end[0], end[1]]
-    length = lambda l: math.sqrt((l[3]-l[1])**2 + (l[2]-l[0])**2)
-    lm["line"] = max(squash_line(lm1), squash_line(lm2), key=length)
-    lm["length"] = (lm["line"][3]-lm["line"][1])/float(lm["line"][2]-lm["line"][0])
+    
+    # Closest point on line measured to origin
+    closest_pt = (lm["origin"]*math.cos(perp_ang), lm["origin"]*math.sin(perp_ang))
+    lm["intercept"] = closest_pt[1] - lm["slope"]*closest_pt[0] # b = y - mx
+    
+    # Merge lines onto ray with same perpindicular origin distance
+    def shift_line(l):
+        d = lm["origin"] - l["origin"]
+        dx = int(d*math.cos(perp_ang))
+        dy = int(d*math.sin(perp_ang))
+        line = l["line"]
+        return [line[0]+dx, line[1]+dy, line[2]+dx, line[3]+dy]
+    line1 = shift_line(lm1)
+    line2 = shift_line(lm2)
+
+    # Make the longest line possible using both sets of line endpoints
+    length = lambda l:  math.sqrt((l[3]-l[1])**2 + (l[2]-l[0])**2)
+    def merge_line(l1, l2):
+        begin1 = [l1[0], l1[1]]
+        begin2 = [l2[0], l2[1]]
+        end1   = [l1[2], l1[3]]
+        end2   = [l2[2], l2[3]]
+        if math.isinf(lm["intercept"]):
+            return [min(begin1[0], begin2[0]), begin1[1], max(end1[0], end2[0]), end1[1]]
+        intercept_pt = [0, lm["intercept"]]
+        if length(intercept_pt + begin1) < length(intercept_pt + begin2):
+            # Then line 1 begins left of line 2, so use line 1 begins as an measuring point
+            if length(begin1 + end2) > length(begin1 + end1):
+                return begin1 + end2
+            else:
+                return begin1 + end1
+        else:
+            # Then line 1 begins right of line 2, so use line 2 begins as an measuring point
+            if length(begin2 + end2) > length(begin2 + end1):
+                return begin2 + end2
+            else:
+                return begin2 + end1
+
+    lm["line"] = merge_line(line1, line2)
+    lm["length"] = length(lm["line"])
+    
     return lm
 
 # Get contours for the input black/white image
@@ -202,12 +236,17 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         raise ValueError("Combination function not set")
     if K is None:
         raise ValueError("Number of desired groups not set")
+    
     X = sorted(items, key=lambda x: distance(x , origin))
+    print "Length of sorted items: {}".format(len(X))
+    
     def cluster_points(X, mu):
         clusters  = {}
         for x in X:
             bestmukey = min([(i[0], distance(x, mu[i[0]])) \
                     for i in enumerate(mu)], key=lambda t:t[1])[0]
+            
+            print "Best key for x={}: {}".format(x, bestmukey)
             try:
                 clusters[bestmukey].append(x)
             except KeyError:
@@ -223,7 +262,7 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
      
     def has_converged(mu, oldmu):
         if len(mu) != len(oldmu):
-            return false
+            return False
         else:
             return reduce(lambda r, v: r and v, \
                 map(lambda (v1, v2): compare(v1, v2, op.eq), zip(mu, oldmu)))
@@ -235,9 +274,11 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         oldmu = mu
         # Assign all points in X to clusters
         clusters = cluster_points(X, mu)
+        print "Length of clusters: {}".format(len(clusters))
         # Reevaluate centers
         mu = reevaluate_centers(oldmu, clusters)
-
+        print "Length of centroids: {}".format(len(mu))
+    
     return sorted(mu, key=lambda x: distance(x, origin))
 
 # Add text to frame at the specified location
