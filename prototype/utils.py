@@ -191,10 +191,19 @@ def skindetect(frame, minthresh=(0,133,77), maxthresh=(255,173,127)):
     frame = dialate(frame)
     # Contourize that region and extract
     contours = getcontours(frame)
-    # Only return contours with a large enough area to be skin
+    # Filter only contours with a large enough area to be skin
     contours = filter(lambda c: cv2.contourArea(c) > 1000, contours)
-    sys.stderr.write("Skin areas found: {}\n".format(len(contours)))
-    return contours
+    if len(contours) == 0:
+        return #nothing
+    # Return largest
+    largest_area = 1
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area > largest_area:
+            largest_contour = c
+            largest_area = area
+
+    return largest_contour
 
 # Helper class to use Cascade Classifier functionality
 class Cascade:
@@ -348,6 +357,11 @@ def addline(frame, line):
         cv2.line(frame, (x1, y1), (x2, y2), color, thickness, lineType) 
     return frame
 
+# Add a circle centered at specified point with the specified radius
+def addcircle(frame, point, radius=10):
+    cv2.rectangle(frame, point, radius, color, thickness, lineType)
+    return frame
+    
 # Add a rectangle or list of rectangles to the frame
 def addrectangle(frame, rect):
     if len(rect) == 4:
