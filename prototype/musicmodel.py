@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import utils
+import locate
 import handmodel
 import guitarmodel
 
@@ -20,19 +21,19 @@ global tablature
 tablature = []
 def add_to_tablature(frame):
     # Get the guitar's POI in the frame
-    (guitar_coords, pickhand_coords, frethand_coords) = 
-        guitar_and_hands(frame)
+    (guitar_coords, pickhand_coords, frethand_coords) = \
+        locate.guitar_and_hands(frame)
     guitar = guitarmodel.get_guitar(guitar_coords)
     if not guitar:
         raise ValueError("No guitar!")
     # Get the hand models for both hands
-    (pickhand, frethand) =
-        guitarmodel.get_hands(frame, pickhand_coords, frethand_coords)
-    if not picking_hand or not fretting_hand:
+    (pickhand, frethand) = \
+        handmodel.get_hands(frame, pickhand_coords, frethand_coords)
+    if not pickhand or not frethand:
         raise ValueError("No hand(s)!")
     
     global tablature 
-    tablature.append(get_note(picking_hand, fretting_hand, guitar))
+    tablature.append(get_note(pickhand, frethand, guitar))
     return tablature
 
 # Get tablature text (last N occurances)
