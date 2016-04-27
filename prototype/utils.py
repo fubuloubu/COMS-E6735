@@ -78,6 +78,10 @@ def inrange(frame, lower, upper):
 def gaussian(frame, ksize=(1, 1), sigma=(3, 3)):
     return cv2.GaussianBlur(frame, ksize, sigma[0], sigma[1], cv2.BORDER_CONSTANT)
 
+# Bilateral filter
+def bilateral(frame, d=9, sigmaColor=75, sigmaSpace=75):
+    return cv2.bilateralFilter(frame, d, sigmaColor, sigmaSpace, borderType=cv2.BORDER_CONSTANT)
+
 # Erosion filter
 def erode(frame, kernalSize=(3, 3), iterations=2):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernalSize)
@@ -180,6 +184,19 @@ def combine_linemodel(lm1, lm2):
     
     return lm
 
+# Binary thresholding processor for skin detection
+def skinthresh(frame, minthresh=(0,140,95), maxthresh=(255,170,135)):
+    # Preprocessing
+    frame = gaussian(frame)
+    # Convert to HSV
+    frame = rgb2ycrcb(frame)
+    # Find region with skin tone in HSV image
+    frame = inrange(frame, minthresh, maxthresh)
+    #Postprocessing
+    frame = erode(frame)
+    frame = dialate(frame)
+    return frame
+
 # Get contours for the input black/white image
 def getcontours(frame):
     contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -189,15 +206,9 @@ def getcontours(frame):
 # https://github.com/seereality/opencvDemos/blob/master/skinDetect.py
 # Erosion and Dialation tricks attributed to pyimagesearch
 # http://www.pyimagesearch.com/2014/08/18/skin-detection-step-step-example-using-python-opencv/
-def skindetect(frame, minthresh=(0,133,77), maxthresh=(255,173,127)):
-    # Convert to HSV
-    frame = rgb2ycrcb(frame)
-    # Find region with skin tone in HSV image
-    frame = inrange(frame, minthresh, maxthresh)
-    # Prefiltering
-    frame = gaussian(frame)
-    frame = erode(frame)
-    frame = dialate(frame)
+def skindetect(frame, binarypreprocessor=skinthresh):
+    # Process frame to extract binary color
+    frame = binarypreprocessor(frame)
     # Contourize that region and extract
     contours = getcontours(frame)
     # Filter only contours with a large enough area to be skin
@@ -374,7 +385,7 @@ def addline(frame, line):
     return frame
 
 # Add a circle centered at specified point with the specified radius
-def addcircle(frame, point, radius=5):
+def addcircle(frame, point, radius=10):
     if len(point) == 2:
         [x, y] = point
         cv2.circle(frame, (x, y), radius, color, thickness, lineType)
