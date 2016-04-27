@@ -205,6 +205,13 @@ def skindetect(frame, minthresh=(0,133,77), maxthresh=(255,173,127)):
 
     return largest_contour
 
+# Return an array of convex hull points on the contour
+def convexhull(contour):
+    if contour is None or len(contour) == 0:
+        return []
+    point_list = cv2.convexHull(contour)
+    return [ list(p[0]) for p in point_list]
+
 # Helper class to use Cascade Classifier functionality
 class Cascade:
     def __init__(self, training_file):
@@ -358,8 +365,10 @@ def addline(frame, line):
     return frame
 
 # Add a circle centered at specified point with the specified radius
-def addcircle(frame, point, radius=10):
-    cv2.rectangle(frame, point, radius, color, thickness, lineType)
+def addcircle(frame, point, radius=5):
+    if len(point) == 2:
+        [x, y] = point
+        cv2.circle(frame, (x, y), radius, color, thickness, lineType)
     return frame
     
 # Add a rectangle or list of rectangles to the frame
