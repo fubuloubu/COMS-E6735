@@ -6,8 +6,7 @@ import locate
 # Handmodel: (x, y) pairs of fingertip points
 def to_handmodel(hand_image):
     handcontour = utils.skindetect(hand_image)
-    convex_pts = utils.convexhull(handcontour)
-    handmodel = [[75, 75]]
+    handmodel = utils.convexhull(handcontour)
     return handmodel
 
 # Get the hand models for both hands
@@ -16,8 +15,8 @@ def get_hands(frame, pickhand_coords, frethand_coords):
     pickhand = to_handmodel(utils.crop(frame, pickhand_coords))
     frethand = to_handmodel(utils.crop(frame, frethand_coords))
     # Uncrop hands to larger frame
-    pickhand = utils.reposition(pickhand, pickhand_coords)
-    frethand = utils.reposition(frethand, frethand_coords)
+    pickhand = map(lambda p: utils.reposition(p, pickhand_coords), pickhand)
+    frethand = map(lambda p: utils.reposition(p, frethand_coords), frethand)
     return (pickhand, frethand)
 
 # Get digit wireframe of hand and present to user
@@ -35,9 +34,10 @@ def main(frame):
         get_hands(frame, pickhand_coords, frethand_coords)
     
     # Add overlay circles on fingers for display
+    frame = utils.addrectangle(frame, pickhand_coords)
     frame = reduce(utils.addcircle, [frame] + pickhand)
+    frame = utils.addrectangle(frame, frethand_coords)
     frame = reduce(utils.addcircle, [frame] + frethand)
-    
     return frame
 
 if __name__ == '__main__':
