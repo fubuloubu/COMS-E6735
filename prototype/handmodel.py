@@ -35,8 +35,10 @@ def main(frame):
     
     # Add overlay circles on fingers for display
     frame = utils.addrectangle(frame, pickhand_coords)
+    frame = utils.addtext(frame, "Pickhand has {} fingers".format(len(pickhand)), location="ur")
     frame = reduce(utils.addcircle, [frame] + pickhand)
     frame = utils.addrectangle(frame, frethand_coords)
+    frame = utils.addtext(frame, "Frethand has {} fingers".format(len(frethand)), location="ul")
     frame = reduce(utils.addcircle, [frame] + frethand)
     return frame
 
