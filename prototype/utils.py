@@ -292,7 +292,6 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         raise ValueError("Number of desired groups not set")
     
     X = sorted(items, key=lambda x: distance(x , origin))
-    sys.stderr.write("Length of sorted items: {}\n".format(len(X)))
     
     def cluster_points(X, mu):
         clusters  = {}
@@ -300,7 +299,6 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
             bestmukey = min([(i[0], distance(x, mu[i[0]])) \
                     for i in enumerate(mu)], key=lambda t:t[1])[0]
             
-            sys.stderr.write("Best key for x={}: {}\n".format(x, bestmukey))
             try:
                 clusters[bestmukey].append(x)
             except KeyError:
@@ -328,10 +326,8 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
         oldmu = mu
         # Assign all points in X to clusters
         clusters = cluster_points(X, mu)
-        sys.stderr.write("Length of clusters: {}\n".format(len(clusters)))
         # Reevaluate centers
         mu = reevaluate_centers(oldmu, clusters)
-        sys.stderr.write("Length of centroids: {}\n".format(len(mu)))
     
     return sorted(mu, key=lambda x: distance(x, origin))
 
