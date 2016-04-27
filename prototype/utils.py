@@ -37,11 +37,31 @@ def reposition(cropped_obj, crop_coords):
                 cropped_obj, crop_coords))
         return cropped_obj
 
+def blankframe(frameToCopy=None, size=[640,480]):
+    if frameToCopy is not None:
+        size = frameToCopy.shape[:2]
+    return np.zeros((size[0], size[1], 3), np.uint8)
+
+# Draw everything as black outside of contour
+def cut(frame, contour):
+    contourframe = blankframe(frame)
+    contourframe = addcontour(contourframe, contour, color=(255,255,255), fill=True)
+    contourframe = colorify(blackandwhite(contourframe))
+    return cv2.bitwise_and(frame, contourframe)
+
 # Rotation function
 def rotate(frame, deg=0):
     rows,cols,k = frame.shape
     M = cv2.getRotationMatrix2D((cols/2,rows/2),deg,1)
     return cv2.warpAffine(frame,M,(cols,rows))
+
+# Return inverted color image
+def invert(frame):
+    return cv2.bitwise_not(frame)
+
+# Return black and white image thresholded at RGB 0F0F0F
+def blackandwhite(frame, lower=(127,127,127),upper=(255,255,255)):
+    return inrange(frame, lower, upper)
 
 # Grayscale filter
 def grayscale(frame):
@@ -331,14 +351,16 @@ def cluster(items, origin=None, distance=None, compare=None, combine=None, K=Non
     
     return sorted(mu, key=lambda x: distance(x, origin))
 
+# Defaults for drawing functions
+defaultcolor = (255, 0, 255) # magenta
+thickness = 1
+lineType = cv2.CV_AA
+
 # Add text to frame at the specified location
-def addtext(frame, text="Hello, world!", location="cc"):
+def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
     # Display settings
     fontFace = cv2.FONT_HERSHEY_PLAIN
     fontScale = 1
-    color = (255, 0, 255) # magenta
-    thickness = 1
-    lineType = cv2.CV_AA
     # Sizing constants
     (h, w) = frame.shape[:2]
     linespace = 12
@@ -368,27 +390,22 @@ def addtext(frame, text="Hello, world!", location="cc"):
                 fontFace, fontScale, color, thickness, lineType)
     return frame
 
-# Defaults for drawing functions
-color = (255, 0, 255) # magenta
-thickness = 1
-lineType = cv2.CV_AA
-
 # Add a line or list of lines to the frame
-def addline(frame, line):
+def addline(frame, line, color=defaultcolor):
     if len(line) == 4:
         [x1, y1, x2, y2] = line
         cv2.line(frame, (x1, y1), (x2, y2), color, thickness, lineType) 
     return frame
 
 # Add a circle centered at specified point with the specified radius
-def addcircle(frame, point, radius=10):
+def addcircle(frame, point, radius=10, color=defaultcolor):
     if len(point) == 2:
         [x, y] = point
         cv2.circle(frame, (x, y), radius, color, thickness, lineType)
     return frame
     
 # Add a rectangle or list of rectangles to the frame
-def addrectangle(frame, rect):
+def addrectangle(frame, rect, color=defaultcolor):
     if len(rect) == 1 and len(rect[0]) == 4:
         rect = rect[0]
     if len(rect) == 4:
@@ -397,18 +414,21 @@ def addrectangle(frame, rect):
     return frame
     
 # Add a contour to the frame
-def addcontour(frame, contour):
+def addcontour(frame, contour, fill=False, color=defaultcolor):
     # contourIdx = -1, if negative draw all
     #cv2.drawContours(frame, contour, -1, color, thickness, lineType)
     #return frame
-    return addshape(frame, contour)
+    return addshape(frame, contour, fill, color)
 
 # Add shape described by list of points in clockwise direction to frame
 # note: last point connects to first point
-def addshape(frame, shape_pts):
+def addshape(frame, shape_pts, fill=False, color=defaultcolor):
     pts = np.array(shape_pts, np.int32)
     pts = pts.reshape((-1,1,2))
-    cv2.polylines(frame, [pts], True, color, thickness, lineType)
+    if fill:
+        cv2.fillPoly(frame, [pts], color, lineType)
+    else:
+        cv2.polylines(frame, [pts], True, color, thickness, lineType)
     return frame
 
 class VideoHandler:
