@@ -31,8 +31,8 @@ def guitar_and_hands(frame):
     pickhand_coords = picking_hand(guitar_crop)
     frethand_coords = fretting_hand(guitar_crop)
     # Re-orient hand coordinates back to full frame
-    pickhand_coords = utils.uncrop(pickhand_coords, guitar_coords)
-    frethand_coords = utils.uncrop(frethand_coords, guitar_coords)
+    pickhand_coords = utils.reposition(pickhand_coords, guitar_coords)
+    frethand_coords = utils.reposition(frethand_coords, guitar_coords)
     return (guitar_coords, pickhand_coords, frethand_coords)
 
 # Apply above locate functions for POI,

@@ -21,12 +21,15 @@ def crop(frame, rect=None):
 # Re-reference rectangle out of cropped frame
 # By moving upper left and lower right vertices
 # in the +x and +y direction by bounding box
-def uncrop(inner_rect, outer_rect):
-    if len(outer_rect) == 0 or len(inner_rect) == 0:
-        return inner_rect
-    else:
-        return inner_rect + outer_rect\
+def reposition(cropped_obj, outer_rect):
+    if len(cropped_obj) == 0 or len(outer_rect) == 0:
+        return cropped_obj
+    elif len(cropped_obj) == 4: #rectangle
+        return cropped_obj + outer_rect\
             *np.matrix('1 0 1 0; 0 1 0 1; 0 0 0 0; 0 0 0 0')
+    else: # point
+        return cropped_obj + outer_rect\
+            *np.matrix('1 0; 0 1; 0 0; 0 0')
 
 # Rotation function
 def rotate(frame, deg=0):
