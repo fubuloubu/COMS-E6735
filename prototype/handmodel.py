@@ -1,6 +1,8 @@
 #!/usr/bin/python
+import sys
 import utils
 import locate
+progname = 'handmodel.py'
 
 # Intepret hand area of frame into hand model
 # Handmodel: (x, y) pairs of fingertip points
@@ -21,26 +23,36 @@ def get_hands(frame, pickhand_coords, frethand_coords):
 
 # Get digit wireframe of hand and present to user
 def main(frame):
-    # Flip the frame for ease of understanding
-    frame = utils.mirror(frame)
     # Locate pickhand and frethand
+    #TODO: Get this working
     #(guitar_coords, pickhand_coords, frethand_coords) = \
     #    locate.guitar_and_hands(frame)
-    pickhand_coords = [[100, 100, 250, 250]]
-    frethand_coords = [[400, 100, 550, 250]]
-    
+    pickhand_coords = [[   0,  520,  800, 1080]] #DEBUG
+    frethand_coords = [[ 800,  300, 1800,  900]] #DEBUG
+
     # Get the hands (list of fingertips) in the frame
     (pickhand, frethand) = \
         get_hands(frame, pickhand_coords, frethand_coords)
     
+    # Print for debugging and testing purposes
+    sys.stderr.write('''
+{0}: Stats
+ Picking Hand Fingertip Locations: {1}
+Fretting Hand Fingertip Locations: {2}
+{0}: Stats
+'''.format(progname, pickhand, frethand) ) 
+    
     # Add overlay circles on fingers for display
     frame = utils.addrectangle(frame, pickhand_coords)
-    frame = utils.addtext(frame, "Pickhand has {} fingers".format(len(pickhand)), location="ur")
+    frame = utils.addtext(frame, "Pickhand has found {} fingertips".format(len(pickhand)), location="ur")
     frame = reduce(utils.addcircle, [frame] + pickhand)
     frame = utils.addrectangle(frame, frethand_coords)
-    frame = utils.addtext(frame, "Frethand has {} fingers".format(len(frethand)), location="ul")
+    frame = utils.addtext(frame, "Frethand has found {} fingertips".format(len(frethand)), location="ul")
     frame = reduce(utils.addcircle, [frame] + frethand)
     return frame
 
 if __name__ == '__main__':
-    utils.capture(main)
+    if len(sys.argv) == 2:
+        utils.test(sys.argv[1], main)
+    else:
+        utils.capture(main)
