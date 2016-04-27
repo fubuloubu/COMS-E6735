@@ -19,17 +19,23 @@ def crop(frame, rect=None):
             return frame[y1:y2, x1:x2]
 
 # Re-reference rectangle out of cropped frame
-# By moving upper left and lower right vertices
-# in the +x and +y direction by bounding box
-def reposition(cropped_obj, outer_rect):
-    if len(cropped_obj) == 0 or len(outer_rect) == 0:
+# by adding the upper left-hand x, y coordinates
+# to the cropped object
+def reposition(cropped_obj, crop_coords):
+    # Sometimes rectangles are encapsulated
+    if len(crop_coords) == 1 and len(crop_coords[0]) == 4:
+        crop_coords = crop_coords[0]
+    # Only apply crop if the cropped object
+    # is a point (x,y) or rectangle (x1,y1,x2,y2) object
+    # and if the crop is a rectangle as well
+    if (len(cropped_obj) == 2 and \
+        len(cropped_obj) == 4) or \
+        len(crop_coords) == 4:
+        return [p + crop_coords[i % 2] for i, p in enumerate(cropped_obj)]
+    else:
+        sys.stderr.write("Not cropping this:\n{}\nwith this:\n{}\n".format(\
+                cropped_obj, crop_coords))
         return cropped_obj
-    elif len(cropped_obj) == 4: #rectangle
-        return cropped_obj + outer_rect\
-            *np.matrix('1 0 1 0; 0 1 0 1; 0 0 0 0; 0 0 0 0')
-    else: # point
-        return cropped_obj + outer_rect\
-            *np.matrix('1 0; 0 1; 0 0; 0 0')
 
 # Rotation function
 def rotate(frame, deg=0):
@@ -376,6 +382,8 @@ def addcircle(frame, point, radius=5):
     
 # Add a rectangle or list of rectangles to the frame
 def addrectangle(frame, rect):
+    if len(rect) == 1 and len(rect[0]) == 4:
+        rect = rect[0]
     if len(rect) == 4:
         [x1, y1, x2, y2] = rect
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness, lineType)
