@@ -414,10 +414,13 @@ def addline(frame, line, color=defaultcolor):
     return frame
 
 # Add a circle centered at specified point with the specified radius
-def addcircle(frame, point, radius=10, color=defaultcolor):
+def addcircle(frame, point, radius=10, color=defaultcolor, fill=False):
     if len(point) == 2:
         [x, y] = point
-        cv2.circle(frame, (x, y), radius, color, thickness, lineType)
+        if fill:
+            cv2.circle(frame, (x, y), radius, color, cv2.cv.CV_FILLED, lineType)
+        else:
+            cv2.circle(frame, (x, y), radius, color, thickness, lineType)
     return frame
     
 # Add a rectangle or list of rectangles to the frame
