@@ -252,6 +252,22 @@ def convexhull(contour):
     point_list = cv2.convexHull(contour)
     return [ list(p[0]) for p in point_list]
 
+# Skeletonize the frame
+# http://opencvpython.blogspot.in/2012/05/skeletonization-using-opencv-python.html
+def skeletonize(frame, maxIterations=20):
+    size = np.size(frame)
+    skel = blankframe(frame)
+    iterations = 0
+    while iterations < maxIterations:# and not cv2.countNonZero(frame):
+        eroded = erode(frame)
+        temp = dialate(eroded)
+        temp = cv2.subtract(frame,temp)
+        skel = cv2.bitwise_or(skel,temp)
+        frame = eroded
+        iterations += 1
+    
+    return skel
+
 # Helper class to use Cascade Classifier functionality
 class Cascade:
     def __init__(self, training_file):
