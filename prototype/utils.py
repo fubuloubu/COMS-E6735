@@ -423,6 +423,8 @@ def addcontour(frame, contour, fill=False, color=defaultcolor):
 # Add shape described by list of points in clockwise direction to frame
 # note: last point connects to first point
 def addshape(frame, shape_pts, fill=False, color=defaultcolor):
+    if shape_pts is None:
+        return frame
     pts = np.array(shape_pts, np.int32)
     pts = pts.reshape((-1,1,2))
     if fill:
