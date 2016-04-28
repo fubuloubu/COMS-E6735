@@ -4,9 +4,9 @@ import utils
 progname = 'locate.py'
 
 # Initialize cascade classifiers
-guitar_cascade = utils.Cascade('guitar_classifier.xml')
-pickhand_cascade = utils.Cascade('pickhand_classifier.xml')
-frethand_cascade = utils.Cascade('frethand_classifier.xml')
+guitar_cascade = utils.Cascade('bass_classifier.xml')
+pickhand_cascade = utils.Cascade('bass_pickhand_classifier.xml')
+frethand_cascade = utils.Cascade('bass_frethand_classifier.xml')
 
 # Main reterival function
 def guitar_and_hands(frame):
