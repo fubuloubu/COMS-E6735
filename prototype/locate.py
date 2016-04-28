@@ -31,9 +31,9 @@ def main(frame):
     # Print for debugging and testing purposes
     sys.stderr.write('''
 {0}: Stats
-Guitar Coordinates:           {1}
-Picking Hand Coordinates:     {2}
-Fretting Hand Coordinates:    {3}
+       Guitar Coordinates:  {1}
+ Picking Hand Coordinates:  {2}
+Fretting Hand Coordinates:  {3}
 {0}: Stats
 '''.format(progname, guitar_coords, pickhand_coords, frethand_coords) ) 
     # Add rectangles for debugging purposes around them
