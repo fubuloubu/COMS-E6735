@@ -336,6 +336,8 @@ def cluster(items, origin=None, distance=None, combine=None, K=None):
     # Find natural jenks breakpoints of items
     #NOTE: put origin distance in here to make jenks find the breakpoints right
     breakpoints = jenks([0] + map(dist_origin, items), K)
+    # Remove duplicates
+    #breakpoints = list(set(breakpoints))
     sys.stderr.write("Breakpoints:\n{}\n".format(breakpoints))
     
     clustered_items = []
@@ -347,7 +349,9 @@ def cluster(items, origin=None, distance=None, combine=None, K=None):
         # Jenks returns zero distance above
         if bp == last_bp:
             continue
-        clustered_items.append(filter(between, items))
+        between_items = filter(between, items)
+        sys.stderr.write("Items between {} and {}:\n{}\n".format(last_bp, bp, clustered_items))
+        clustered_items.append(between_items)
         last_bp = bp
     sys.stderr.write("Clustered items:\n{}\n".format(clustered_items))
     
@@ -363,12 +367,12 @@ lineType = cv2.CV_AA
 
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
-    # Display settings
-    fontFace = cv2.FONT_HERSHEY_PLAIN
-    fontScale = 1
     # Sizing constants
     (h, w) = frame.shape[:2]
-    linespace = 12
+    # Display settings
+    fontFace = cv2.FONT_HERSHEY_PLAIN
+    fontScale = h/480 #scale with height of frame
+    linespace = 12*fontScale
     lines = text.split('\n')
     # Function used to create coordinates for each line
     # center level is set by finding center point and biasing each line top down
