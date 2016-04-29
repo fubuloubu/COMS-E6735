@@ -19,7 +19,6 @@ def to_handmodel(hand_crop, direction='up'):
         handmodel = utils.cluster(handmodel, \
                 origin=[0, 0], \
                 distance=lambda p1, p2: (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2, \
-                compare=lambda p1, p2, cp: cp(cp(p1[0],p2[0]), cp(p1[1],p2[1])), \
                 combine=lambda p1, p2: [(p1[0]+p2[0])/2, (p1[1]+p2[1])/2], \
                 K=4)
     return handmodel

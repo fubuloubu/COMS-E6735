@@ -43,7 +43,6 @@ def get_grouped_lines(lines):
     # Search for strings and append/update string locations
     line_groups = utils.cluster(lines_near_avg, \
             distance=lambda lm1, lm2: lm1["origin"] - lm2["origin"], \
-            compare=lambda lm1, lm2, op: op(lm1["origin"], lm2["origin"]), \
             combine=utils.combine_linemodel, \
             origin=origin, K=NUM_STRINGS)
     return line_groups
