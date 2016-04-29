@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import utils
-import sys
+import sys, math
 import locate
 progname = 'guitarmodel.py'
 
@@ -24,11 +24,12 @@ def display(frame, guitar):
     return frame
 
 NUM_STRINGS = 4 # System parameter
-origin = utils.tolinemodel([0, 0, 0, 0])
 # Return a set of lines in the same direction grouped by perpindicular distance
 def get_grouped_lines(lines):
     # Get average angle of all lines
     avg_angle = reduce(lambda avg, lm: avg + lm["angle"], [0] + lines)/len(lines)
+    origin_line_y = lambda x: math.tan(avg_angle)*x # y = mx+b, m = tan(theta)
+    origin = utils.tolinemodel([-10, origin_line_y(-10), 10, origin_line_y(10)])
     delta_angle = 2 #degs
     # Find the strongly connected lines
     # Filter down to all lines within delta angle of the average
