@@ -24,8 +24,16 @@ def display(frame, guitar):
     return frame
 
 NUM_STRINGS = 4 # System parameter
-# Return a set of lines in the same direction grouped by perpindicular distance
-def get_grouped_lines(lines):
+NUM_FRETS = 24 # System parameter
+# Update the guitar model and attribute locations
+def get_guitar(frame):
+    guitar["available"] = False
+    # Get all lines in current frame that are long enough to be strings
+    lines = utils.linedetect(frame, minLineLength=180)
+    if len(lines) < 8:
+        return guitar
+    # Convert to line model
+    lines = map(lambda l: utils.tolinemodel(l), lines)
     # Get average angle of all lines
     avg_angle = reduce(lambda avg, lm: avg + lm["angle"], [0] + lines)/len(lines)
     origin_line_y = lambda x: math.tan(avg_angle)*x # y = mx+b, m = tan(theta)
@@ -41,25 +49,13 @@ def get_grouped_lines(lines):
     if len(lines_near_avg) < NUM_STRINGS:
         return
     # Search for strings and append/update string locations
-    line_groups = utils.cluster(lines_near_avg, \
+    string_lines = utils.cluster(lines_near_avg, \
             distance=lambda lm1, lm2: lm1["origin"] - lm2["origin"], \
             combine=utils.combine_linemodel, \
             origin=origin, K=NUM_STRINGS)
-    return line_groups
-
-# Update the guitar model and attribute locations
-def get_guitar(frame):
-    guitar["available"] = False
-    # Get all lines in current frame that are long enough to be strings
-    lines = utils.linedetect(frame, minLineLength=180)
-    if len(lines) < 8:
+    if string_lines is None:
         return guitar
-    # Convert to line model
-    lines = map(lambda l: utils.tolinemodel(l), lines)
-    lines = get_grouped_lines(lines)
-    if lines is None:
-        return guitar
-    guitar["locations"]["strings"] = map(lambda lm: lm["line"], lines)
+    guitar["locations"]["strings"] = map(lambda lm: lm["line"], string_lines)
     # Search for frets and append/update string locations
     guitar["available"] = True
     return guitar
