@@ -14,15 +14,9 @@ def test_1d_pts():
     origin = 0
     K = 4
 
-    average_corr = []
-    Ntrials = 10
-    for i in range(Ntrials):
-        print "Trial {} of {}".format(i+1, Ntrials)
-        cluster_pts = utils.cluster(points, K=K, origin=origin, \
-            distance=distance, compare=compare, combine=combine)
-        average_corr.append(verify(correct_pts, cluster_pts, compare))
-
-    return sum(average_corr) / Ntrials
+    cluster_pts = utils.cluster(points, K=K, origin=origin, \
+        distance=distance, combine=combine)
+    return verify(correct_pts, cluster_pts, compare)
 
 def test_2d_pts():
     points = [  ( 1,  1), \
@@ -31,6 +25,10 @@ def test_2d_pts():
                 ( 3,  3), \
                 ( 3,  3), \
                 ( 3,  3), \
+                ( 3,  5), \
+                ( 3,  5), \
+                ( 5,  3), \
+                ( 5,  3), \
                 ( 5,  5), \
                 ( 5,  5), \
                 ( 5,  5), \
@@ -40,24 +38,20 @@ def test_2d_pts():
     
     correct_pts = [ ( 1,  1), \
                     ( 3,  3), \
+                    ( 4,  4), \
                     ( 5,  5), \
                     ( 7,  7)  ]
 
-    distance= lambda p1, p2: (p1[0] - p2[0])**2 + (p1[1] - p2[1])**2
-    compare = lambda p1, p2, op: op(p1[0], p2[0]) and op(p1[1], p2[1])
-    combine = lambda p1, p2: ( (p1[0] + p2[0])/2, (p1[1] + p2[1])/2 )
+    distance= lambda (p1x, p1y), (p2x, p2y): (p1x - p2x)**2 + (p1y - p2y)**2
+    compare = lambda (p1x, p1y), (p2x, p2y), op: op(op(p1x, p2x), op(p1y, p2y))
+    combine = lambda (p1x, p1y), (p2x, p2y): ( (p1x + p2x)/2, (p1y + p2y)/2 )
     origin = (0, 0)
-    K = 4
+    K = 5
+    print combine((3, 5), (5, 3))
 
-    average_corr = []
-    Ntrials = 10
-    for i in range(Ntrials):
-        print "Trial {} of {}".format(i+1, Ntrials)
-        cluster_pts = utils.cluster(points, K=K, origin=origin, \
-            distance=distance, compare=compare, combine=combine)
-        average_corr.append(verify(correct_pts, cluster_pts, compare))
-
-    return sum(average_corr) / Ntrials
+    cluster_pts = utils.cluster(points, K=K, origin=origin, \
+        distance=distance, combine=combine)
+    return verify(correct_pts, cluster_pts, compare)
 
 if __name__ == '__main__':
     results = lambda r, s: "{} {} ({}%)".format("PASS" if r > 0.95 else "FAIL", s, r*100)
