@@ -4,6 +4,8 @@ import numpy as np
 import random
 import math
 import sys
+import operator as op
+from jenks import jenks
 from progress.bar import Bar
 
 # Flip video around
@@ -315,57 +317,44 @@ class Cascade:
 import operator as op
 # Implementation of Lloyd's algorithm
 # Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
+# Fast implementation of jenks: https://github.com/perrygeo/jenks
 def cluster(items, origin=None, distance=None, compare=None, combine=None, K=None):
     if origin is None:
         raise ValueError("Origin not set")
     if distance is None:
         raise ValueError("Distance function not set")
-    if compare is None:
-        raise ValueError("Comparision function not set")
     if combine is None:
         raise ValueError("Combination function not set")
     if K is None:
-        raise ValueError("Number of desired groups not set")
+        raise ValueError("Parameter K not set")
     
-    X = sorted(items, key=lambda x: distance(x , origin))
+    # Sort items first by distance from origin
+    dist_origin = lambda item: distance(item, origin)
+    items = sorted(items, key=dist_origin)
+    sys.stderr.write("Items to sort:\n{}\n".format(items))
+
+    # Find natural jenks breakpoints of items
+    #NOTE: put origin distance in here to make jenks find the breakpoints right
+    breakpoints = jenks([0] + map(dist_origin, items), K)
+    sys.stderr.write("Breakpoints:\n{}\n".format(breakpoints))
     
-    def cluster_points(X, mu):
-        clusters  = {}
-        for x in X:
-            bestmukey = min([(i[0], distance(x, mu[i[0]])) \
-                    for i in enumerate(mu)], key=lambda t:t[1])[0]
-            
-            try:
-                clusters[bestmukey].append(x)
-            except KeyError:
-                clusters[bestmukey] = [x]
-        return clusters
-     
-    def reevaluate_centers(mu, clusters):
-        newmu = []
-        keys = sorted(clusters.keys())
-        for k in keys:
-            newmu.append(reduce(combine, clusters[k]))
-        return newmu
-     
-    def has_converged(mu, oldmu):
-        if len(mu) != len(oldmu):
-            return False
-        else:
-            return reduce(lambda r, v: r and v, \
-                map(lambda (v1, v2): compare(v1, v2, op.eq), zip(mu, oldmu)))
-     
-    # Initialize to K centers randomly chosen from list X
-    oldmu = random.sample(X, K)
-    mu = random.sample(X, K)
-    while not has_converged(mu, oldmu):
-        oldmu = mu
-        # Assign all points in X to clusters
-        clusters = cluster_points(X, mu)
-        # Reevaluate centers
-        mu = reevaluate_centers(oldmu, clusters)
+    clustered_items = []
+    last_bp = 0 #distance between origin and origin should be zero
+    # Lambda to test if item's distance is between breakpoints, using interval: (bp1, bp2]
+    between = lambda item: dist_origin(item) > last_bp and dist_origin(item) <= bp
+    # Group items using breakpoints
+    for bp in breakpoints:
+        # Jenks returns zero distance above
+        if bp == last_bp:
+            continue
+        clustered_items.append(filter(between, items))
+        last_bp = bp
+    sys.stderr.write("Clustered items:\n{}\n".format(clustered_items))
     
-    return sorted(mu, key=lambda x: distance(x, origin))
+    # Reduce each grouped element using the combine function
+    reduced_items = map(lambda cl: reduce(combine, cl), clustered_items)
+    sys.stderr.write("Reduced items:\n{}\n".format(reduced_items))
+    return reduced_items
 
 # Defaults for drawing functions
 defaultcolor = (255, 0, 255) # magenta
