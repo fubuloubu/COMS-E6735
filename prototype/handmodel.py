@@ -39,8 +39,9 @@ def main(frame):
     #TODO: Get this working
     #(guitar_coords, pickhand_coords, frethand_coords) = \
     #    locate.guitar_and_hands(frame)
-    pickhand_coords = [[   0,  520,  800, 1080]] #DEBUG
-    frethand_coords = [[ 800,  300, 1800,  900]] #DEBUG
+    scale = frame.shape[1]/1920.0
+    pickhand_coords = [[int(scale*i) for i in [   0,  520,  800, 1080]]] #DEBUG
+    frethand_coords = [[int(scale*i) for i in [ 800,  300, 1800,  900]]] #DEBUG
 
     # Get the hands (list of fingertips) in the frame
     (pickhand, frethand) = \
