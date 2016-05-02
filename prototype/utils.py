@@ -150,6 +150,7 @@ def tolinemodel(l):
         lm["intercept"] = l[1] - lm["slope"]*l[0] # b = y - mx
         lm["angle"] = math.atan(lm["slope"]) # theta = atan(m), ignore quadrants
         lm["origin"] = int(lm["intercept"]*math.cos(lm["angle"])) # shortest distance from origin
+        lm["angle"] = math.degrees(lm["angle"]) # Save angle in degrees
     return lm
 
 # Compute a linemodel 'lm' from combining two line models 'lm1', 'lm2'
@@ -161,8 +162,8 @@ def combine_linemodel(lm1, lm2):
     lm["angle"] = (lm1["angle"] + lm2["angle"])/2
     
     # Angle of distance measurement perpidicular to the line
-    lm["slope"] = math.tan(lm["angle"])
-    perp_ang = math.radians(90) - lm["angle"]
+    lm["slope"] = math.tan(math.radians(lm["angle"]))
+    perp_ang = math.radians(90 - lm["angle"])
     
     # Closest point on line measured to origin
     closest_pt = (lm["origin"]*math.cos(perp_ang), lm["origin"]*math.sin(perp_ang))
@@ -318,47 +319,45 @@ import operator as op
 # Implementation of Lloyd's algorithm
 # Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
-def cluster(items, origin=None, distance=None, combine=None, K=None):
-    if origin is None:
-        raise ValueError("Origin not set")
-    if distance is None:
+def cluster(items, value=None, K=None):
+    if value is None:
         raise ValueError("Distance function not set")
-    if combine is None:
-        raise ValueError("Combination function not set")
     if K is None:
         raise ValueError("Parameter K not set")
-    
-    # Sort items first by distance from origin
-    dist_origin = lambda item: distance(item, origin)
-    items = sorted(items, key=dist_origin)
-    sys.stderr.write("Items to sort:\n{}\n".format(items))
 
+    if len(items) <= K:
+        sys.stderr.write("WARNING: NOT ENOUGH ITEMS!\nInput List Size: {}\n".format(len(items)))
+        return [[i] for i in items]
+    
+    distance = lambda p1, p2: value(p1) - value(p2)
+    breakpoints = sorted(map(value, items))
+    sys.stderr.write("Sorted values list:\n{}\n".format(breakpoints))
+    
     # Find natural jenks breakpoints of items
-    #NOTE: put origin distance in here to make jenks find the breakpoints right
-    breakpoints = jenks([0] + map(dist_origin, items), K)
-    # Remove duplicates
+    breakpoints = jenks(breakpoints, K)
+    # Remove duplicate
     #breakpoints = list(set(breakpoints))
     sys.stderr.write("Breakpoints:\n{}\n".format(breakpoints))
     
     clustered_items = []
-    last_bp = 0 #distance between origin and origin should be zero
+    last_bp = None
     # Lambda to test if item's distance is between breakpoints, using interval: (bp1, bp2]
-    between = lambda item: dist_origin(item) > last_bp and dist_origin(item) <= bp
+    between = lambda item: value(item) > last_bp and value(item) <= bp
     # Group items using breakpoints
     for bp in breakpoints:
         # Jenks returns zero distance above
-        if bp == last_bp:
+        if last_bp is None:
+            last_bp = bp
             continue
         between_items = filter(between, items)
-        sys.stderr.write("Items between {} and {}:\n{}\n".format(last_bp, bp, clustered_items))
+        sys.stderr.write("Values between {} and {}:\n{}\n".format(last_bp, bp, map(value, between_items)))
+        if len(between_items) == 0:
+            last_bp = bp
+            continue
         clustered_items.append(between_items)
         last_bp = bp
-    sys.stderr.write("Clustered items:\n{}\n".format(clustered_items))
-    
-    # Reduce each grouped element using the combine function
-    reduced_items = map(lambda cl: reduce(combine, cl), clustered_items)
-    sys.stderr.write("Reduced items:\n{}\n".format(reduced_items))
-    return reduced_items
+    sys.stderr.write("{} clusters found (K={})\nItems:\n{}\n".format(len(clustered_items), K, clustered_items))
+    return clustered_items
 
 # Defaults for drawing functions
 defaultcolor = (255, 0, 255) # magenta
