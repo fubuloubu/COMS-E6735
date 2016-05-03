@@ -2,7 +2,11 @@
 import utils
 import sys, math
 import locate
-progname = 'guitarmodel.py'
+errorstring = '''
+guitarmodel.py: Stats
+Guitar: {0}
+guitarmodel.py: Stats
+'''
 
 # Initialize guitar data structure for tracking
 guitar = {}
@@ -111,8 +115,13 @@ def get_guitar(frame):
 def main(frame):
     # Get the guitar's POI in the frame
     guitar = get_guitar(frame)#locate.guitar(frame))
+    # Write status
+    sys.stderr.write(errorstring.format(guitar))
     # Return overlaid guitar attributes on frame
     return display(frame, guitar)
 
 if __name__ == '__main__':
-    utils.capture(main)
+    if len(sys.argv) == 2:
+        utils.test(sys.argv[1], main)
+    else:
+        utils.capture(main)
