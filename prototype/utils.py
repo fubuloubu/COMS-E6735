@@ -417,10 +417,7 @@ def addcircle(frame, point, radius=10, color=defaultcolor, fill=False):
     
 # Add a rectangle or list of rectangles to the frame
 def addrectangle(frame, rect, color=defaultcolor):
-    if len(rect) == 1 and len(rect[0]) == 4:
-        rect = rect[0]
-    if len(rect) == 4:
-        [x1, y1, x2, y2] = rect
+    for [x1, y1, x2, y2] in rect:
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness, lineType)
     return frame
     
