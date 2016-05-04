@@ -17,10 +17,10 @@ def to_handmodel(hand_crop, direction='up'):
         handmodel = map(lambda l: [l[0], l[1]], fingerlines)
     if len(handmodel) > 4:
         handmodel = utils.cluster(handmodel, \
-                origin=[0, 0], \
-                distance=lambda p1, p2: (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2, \
-                combine=lambda p1, p2: [(p1[0]+p2[0])/2, (p1[1]+p2[1])/2], \
+                value=lambda p: (p[0])**2 + (p[1])**2, \
                 K=4)
+        combine=lambda p1, p2: [(p1[0]+p2[0])/2, (p1[1]+p2[1])/2]
+        handmodel = map(lambda l: reduce(combine, l), handmodel)
     return handmodel
 
 # Get the hand models for both hands
