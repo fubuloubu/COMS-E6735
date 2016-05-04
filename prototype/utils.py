@@ -612,24 +612,30 @@ Fretting Hand Coordinates:  []
 locate.py: Stats
 '''
 import re, ast
-#var = ast.literal_eval(string)
 # Using errorstring, parse the results in filename into N records of M data
 # The errorstring uses {0}, {1}, ... {M} codes to print random data
 def getresults(filename, errorstring, resultsfun):
     # Remove the makefile constructs
     print "Video: {0}".format(".".join(filename.split('.')[1:-1]))
-
+    
+    # Get N array of strings matching frame using errorstring
     searchstr = '(' + errorstring.strip().replace('\n','\\n').replace('{}','.*') + ')*'
     print searchstr
     with open(filename, 'r') as f:
         contents = f.read()
         results = re.search(contents, searchstr)
         print results.group(0)
+
+    # For each frame, get M array of printed attributes
     searchstr = errorstring.replace('{}','(.*)')
+    
     # Evaluate the matches as literal python code,
     # which should be acceptable as it should have
     # been printed originally as built-ins
     frames = map(lambda l: map(ast.literal_eval, l), results)
+    
+    # Execute the checking function given to us
+    # and print the results
     for frame_data in frames:
         result = resultsfun(frame_data)
         print "Frame: {:>3}% Correct".format(result)
