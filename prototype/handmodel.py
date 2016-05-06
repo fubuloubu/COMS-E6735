@@ -2,7 +2,23 @@
 import sys
 import utils
 import locate
-progname = 'handmodel.py'
+errorstring = '''
+handmodel.py: Stats
+ Picking Hand Fingertip Locations: {}
+Fretting Hand Fingertip Locations: {}
+handmodel.py: Stats
+'''
+
+# Verify results of each frame
+def verify(filename):
+    def results_fun(frame_data):
+        results  = 50*min(len(frame_data[0]),5) / 5.0
+        results -= 50*(max(len(frame_data[0]),5) - 5)
+        results += 50*min(len(frame_data[1]),5) / 5.0
+        results -= 50*(max(len(frame_data[1]),5) - 5)
+        results = max(results,0)
+        return results
+    utils.getresults(filename, errorstring, results_fun)
 
 # Intepret hand area of frame into hand model
 # Handmodel: (x, y) pairs of fingertip points
@@ -48,12 +64,7 @@ def main(frame):
         get_hands(frame, pickhand_coords, frethand_coords)
     
     # Print for debugging and testing purposes
-    sys.stderr.write('''
-{0}: Stats
- Picking Hand Fingertip Locations: {1}
-Fretting Hand Fingertip Locations: {2}
-{0}: Stats
-'''.format(progname, pickhand, frethand) ) 
+    sys.stderr.write( errorstring.format(progname, pickhand, frethand) ) 
     
     # Add overlay circles on fingers for display
     frame = utils.addrectangle(frame, pickhand_coords)
