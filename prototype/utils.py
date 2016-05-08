@@ -616,9 +616,11 @@ def getresults(filename, errorstring, resultsfun):
         frames = re.findall(errorstring.replace('{}','.*'), f.read())
         # Now get groups of data for each frame using a grouping regexp
         framedata = map(lambda f: re.findall(errorstring.replace('{}','(.*?)'),f), frames)
+        # re.findall provides tuples if 2+ matches found, so clean that
+        framedata = map(lambda f: [i for i in (f[0] if type(f[0]) is tuple else f)], framedata)
         # Evaluate the matches as literal python code, which should be acceptable 
         # as it should have been printed originally as built-ins
-        framedata = map(lambda f: [ast.literal_eval(i) for i in f[0]], framedata)
+        framedata = map(lambda f: [ast.literal_eval(i) for i in f], framedata)
         # Execute the checking function given to us and print the results
         for data in framedata:
             result = resultsfun(data)
