@@ -12,12 +12,12 @@ guitarmodel.py: Stats
 def verify(filename):
     def results_fun(frame_data):
         results = 0
-        if len(frame_data) == 0:
+        if frame_data is not None:
             guitar = frame_data[0]
             if guitar["available"]:
                 results += 60*len(guitar["locations"]["strings"])/float(NUM_STRINGS)
                 results += 40*len(guitar["locations"]["frets"])/float(NUM_FRETS)
-        return results
+        return int(results)
     utils.getresults(filename, errorstring, results_fun)
 
 # Initialize guitar data structure for tracking
