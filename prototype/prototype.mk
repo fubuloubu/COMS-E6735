@@ -1,5 +1,5 @@
 # All the targets we have
-TARGETS=locate.results handmodel.results guitarmodel.results musicmodel.results
+TARGETS=locate.results handmodel.results guitarmodel.results #musicmodel.results
 
 PYTHON=python
 
@@ -53,7 +53,7 @@ METRICS_OPTIONS += -f latex_booktabs
 GET_METRICS=$(PYTHON) $(METRICS_SCRIPT) $(METRICS_OPTIONS)
 results.tex: $(foreach target,$(TARGETS),$(subst py,results,$(target)))
 	@echo "  GEN $@"
-	@$(GET_METRICS) -t $^
+	@$(GET_METRICS) -t $^ > $@
 
 # clean rule for prototype scripts
 .PHONY: clean
