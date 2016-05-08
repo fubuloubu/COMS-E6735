@@ -64,7 +64,7 @@ def main(frame):
         get_hands(frame, pickhand_coords, frethand_coords)
     
     # Print for debugging and testing purposes
-    sys.stderr.write( errorstring.format(progname, pickhand, frethand) ) 
+    sys.stderr.write( errorstring.format(pickhand, frethand) ) 
     
     # Add overlay circles on fingers for display
     frame = utils.addrectangle(frame, pickhand_coords)
