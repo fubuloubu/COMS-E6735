@@ -316,8 +316,6 @@ class Cascade:
         return np.asmatrix(self.detected_obj).tolist()
 
 import operator as op
-# Implementation of Lloyd's algorithm
-# Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
 def cluster(items, value=None, K=None):
     if value is None:
