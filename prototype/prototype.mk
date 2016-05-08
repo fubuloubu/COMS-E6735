@@ -47,8 +47,9 @@ $(foreach video,$(VIDEO_FILES),$(eval $(call TEST_VIDEO_RULES,$(video))))
 
 # Collate all the results files into one table
 METRICS_SCRIPT=results_evaluation.py
-METRICS_OPTIONS  = -m *+score total+score
-METRICS_OPTIONS += -f booktabs_latex
+METRICS_OPTIONS  = -m $(foreach video,$(VIDEO_FILES),$(subst .mp4,-avg-score,$(video)))
+METRICS_OPTIONS += total-avg-score
+METRICS_OPTIONS += -f latex_booktabs
 GET_METRICS=$(PYTHON) $(METRICS_SCRIPT) $(METRICS_OPTIONS)
 results.tex: $(foreach target,$(TARGETS),$(subst py,results,$(target)))
 	@echo "  GEN $@"
