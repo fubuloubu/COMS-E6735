@@ -1,1 +1,43 @@
+Using the evaluation methodology mentioned before, the accuracy of each major stage of the program was
+recorded and measured for each of the five test videos, and the average per-frame accuracy was taken.
+Additionally, the per-video average accuracy was then taken to show the differences between all videos.
+The results are detailed in the following table (values are in percent):
+\vspace{5mm}
+
+% Table of results from prototype phase
+\begin{centering}
 \input{../prototype/results.tex}
+\end{centering}
+\vspace{5mm}
+
+As can be seen, the overall accuracy is poor for program layers.
+\subsection{Location Stage}
+The location stage is the worst overall, with an inability to detect the location of the guitar
+in the vast majority of scenes, and a near-zero recognition rate for the location of the hands.
+Overall, the location stage's accuracy is about 0.2\% over the variety of input video circumstances.
+The 1\% accuracy in the 5-th video is interesting as that video was the only video in which clothing was changed.
+In reviewing the results of the footage overlaid with the location footage also reveals the results
+are very poor. When it does locate an object, the object is only sometimes correctly identified.
+Often, the identified object was located in the background, which was white for most of the videos.
+This speaks to the classifier being poorly trained.
+
+\subsection{Guitar Modeling Stage}
+The guitar modeling stage is the best overall, with a majority of frames able to find the guitar strings
+with a high degree of precision. 50\% of the detection accuracy was awarded to finding exactly 4-strings
+in each frame, which most frames were easy to do. Review of the results of the footage overlaid with lines
+representing the detected strings also showed the results were agreeable to human subjects.
+In contrast, the frets were not found to that same degree of precision and not in the same quantity as desired.
+The obtained frets were usally 3-4 in number (24 was the desired quantity) and significantly exceeded the boundary
+of the guitar neck, as identified using string detection. This was verified by manual review of the overlaid
+frames.
+
+\subsection{Hand Modeling Stage}
+The hand modeling stage was met with moderate initial success. Fingertip points were identified in almost
+half the frames in two of the five videos. However, the framing used for skin detection of both hands
+were not able to leverage the hand locations from the Location Stage, so the locations were set manually.
+This artificially deflated the results of this layer. Upon review of the overlaid results, the identified
+fingertip points were often poorly selected. The algorithm used identified line ends of an artificially
+produced "skeleton", which could be an underlying source of error as the algorithm may not be robust enough.
+
+\subsection{Music Production Model and Output Layer}
+This layer was not attempted. No results were obtained.
