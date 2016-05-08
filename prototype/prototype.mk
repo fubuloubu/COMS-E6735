@@ -50,6 +50,7 @@ METRICS_SCRIPT=results_evaluation.py
 METRICS_OPTIONS  = -m $(foreach video,$(VIDEO_FILES),$(subst .mp4,-avg-score,$(video)))
 METRICS_OPTIONS += total-avg-score
 METRICS_OPTIONS += -f latex_booktabs
+METRICS_OPTIONS += -r ".results" ""
 GET_METRICS=$(PYTHON) $(METRICS_SCRIPT) $(METRICS_OPTIONS)
 results.tex: $(foreach target,$(TARGETS),$(subst py,results,$(target)))
 	@echo "  GEN $@"
