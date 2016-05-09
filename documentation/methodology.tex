@@ -84,6 +84,13 @@ and occlusion of the instrument in the frame, once the guitar has been corrected
 The frets and strings were identified using a threshold technique leveraging the fact that
 (for at least the target bass guitar owned by the player) these features are shiny and reflect
 the light sources much more significantly than the guitar body and neck.
+Once the thresholding was applied, Hough Line detection was employed in order to isolate the sharply
+defined lines of the strings from the rest of the picture. A large group of strings all going in the same
+direction that are of larger than normal size was determined to be correct for use in a clustering algorithm
+used to find the final amount of matching strings. A Jenks natural breaks algorithm was used to cluster these
+lines by their perpindicular distance (using the average angle of these lines), and the resulting groups
+where grouped into one representative line for that string.
+\par
 This technique proved fairly reliable in early trials, however lighting and orientation
 differences could lead to this detection to be somewhat fickle in identifying all of the frets.
 Since the guitar should not change scale in frame too much, and the range of orientation
