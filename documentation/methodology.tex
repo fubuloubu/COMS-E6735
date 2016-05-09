@@ -13,7 +13,7 @@ Since there exists a nearly endless quantity of not only guitar shapes, body sty
 that suites an individual owner's tastes (possibly more variability than even the owners themselves!),
 it is necessary to severely limit the guitars that are able to be detected by this layer.
 In particular due to time constraints, it is necessary to limit this to 1 specific guitar.
-Future projects can train better classifiers by adding more and more number of guitars,
+Future projects can train better classifiers by adding more types, shapes, and colors of guitars,
 or otherwise diversify this layer using other techniques.
 \par
 Not only does the guitar classification layer need to recognize these guitars,
@@ -21,7 +21,7 @@ but will also need to recognize these guitars in context of the players who play
 This means the ability to recognize the guitar despite player's hands and potentially clothing obscuring
 features of the guitar that may help to classify it.
 Additionally, the location of the hands can vary drastically as the player moves up and down the neck,
-or uses different picking/plucking/strumming techniques at different orientations.
+and different picking/plucking/strumming techniques at different orientations can make this layer have exponentially more factors to train for.
 In this project, this was done by only training with images that contain the specific player's hands
 and a specific clothing choice along with the specific guitar the player would be using.
 Again, future projects can look into diversifying this layer to account for all manner of player's
@@ -110,7 +110,7 @@ and passing them through a "skeletonization" filter \cite{skeleton} that blurs a
 inwards towards the center portion of the image until only a thin, strong line representing the fingers are left.
 Hough Line detection was employed at this point in order to indentify line endings in an attempt to find the finger tip locations.
 \par
-A previous method that intended to be adapted from several papers concerning the real-time tracking of hands and fingers
+A previous method that was intended to be adapted from several papers concerning the real-time tracking of hands and fingers
 \cite{aslhand,handposes,fingertracking}.
 However, the lack of available source code and complexity of the algorithms necessitated the simpler approach employed here.
 
@@ -164,6 +164,10 @@ for accuracy, which are as follows:
     \item Guitar Model: Number of identified strings and frets
     \item Hand Model: Number of identified finger tips
 \end{itemize}
+Additionally, manual verification and quality determinations will be made by the author by reviewing
+the quality of each layer using visual representations of the processing performed by each layer using the
+set of videos provided.
+\par
 For the final system, an extended verification methodology will be employed against the desired output via the following:
 \begin{itemize}
     \item Each note occurence in the desired output will be matched to a corresponding note in the obtained output
@@ -180,4 +184,4 @@ The overall goal for correctness would be 90\%.
 This is an agressive goal for a computer vision application,
 especially for one measuring the location of fingers on a hand.
 Additionally, the obtained final tablature file can be converted to midi representation
-using a conversion utility such as \cite{8notes}.
+for qualitative feedback using a conversion utility such as \cite{8notes}.
