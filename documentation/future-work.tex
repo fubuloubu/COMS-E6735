@@ -1,0 +1,36 @@
+\subsection{Location Stage}
+In order to improve the detection rate for the location stage, the cascade classifier used needs to be
+trained under a much greater diversity of lighting and clothing choices. This would increase the accuracy in
+finding the guitar in a given frame, which would also increase the detection rate of the hands in context.
+Additional investigation was performed into alternative classifiers. A classifier using pixel intensity
+comparisions \cite{pico} was intended on being used as initial research indicated it had potential for
+rotation-invariant object detection, essential to the application here and missing from the final
+project. However, time constraints limited the implementation of the upgraded classifier.
+
+\subsection{Guitar Modeling Stage}
+Improving the fret detection framework would be a priority of this stage, as the string detection is already
+sufficiently accurate enough as to be useful. Some ideas included working on line detection of much smaller
+lines perpindicular to the detected strings, as the frets are underneath the strings and may therefore 
+hamper line detection due to the occlusion. Other ideas may include finding intersection points that identify
+a regular grid pattern on the guitar neck, which would also be useful for the identification of string-fret
+pairings required for fingering positions.
+
+\subsection{Hand Modeling Stage}
+Much more work is needed for this stage as the currently utilized modeling technique is to obtain line
+endpoints of an artificial "skeleton" model. This might not be the best algorithm for detection of fingertip
+points, so further investiation would be required if better algorithms might produce nicer overall results.
+Using the current algorithm, filtering could be employed to identify only the points that are within the region
+of interest (namely the guitar neck/body using the string locations). Partial occlusion of the fingers in
+many of the frames analyzed may make any algorithm to detect finger tips difficult overall however.
+
+\subsection{Music Production Model and Output Layer}
+As noted, this layer was not even attempted for the final project because it requires all of the prior
+levels to working with at least a moderate level of success before reasonable results could be obtained.
+Future work would focus on this layer and using motion-obtaining techniques to determine when picking
+events occurred in order to match the events to the production of notes and obtain musical tablature as
+the final output.
+\par
+It may be advantageous to hybridize pure video analysis using audio recognition
+or visual reconstruction of audio data using vibration \cite{VisualMic}.
+This could be performed to identify specific notes, or simply to help identify when a picking event occurs.
+This hybrid approach will improve overall correctness and robustness of results that a user might expect.

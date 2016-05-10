@@ -12,8 +12,8 @@ for it's inteded usage scenario as possible \cite{opencv,codingrobin}.
 Since there exists a nearly endless quantity of not only guitar shapes, body styles, colors, lengths, etc.
 that suites an individual owner's tastes (possibly more variability than even the owners themselves!),
 it is necessary to severely limit the guitars that are able to be detected by this layer.
-In particular due to time constraints, it is necessary to limit this to 1 or 2 specific guitars.
-Future projects can train better classifiers by adding more and more number of guitars,
+In particular due to time constraints, it is necessary to limit this to 1 specific guitar.
+Future projects can train better classifiers by adding more types, shapes, and colors of guitars,
 or otherwise diversify this layer using other techniques.
 \par
 Not only does the guitar classification layer need to recognize these guitars,
@@ -21,7 +21,7 @@ but will also need to recognize these guitars in context of the players who play
 This means the ability to recognize the guitar despite player's hands and potentially clothing obscuring
 features of the guitar that may help to classify it.
 Additionally, the location of the hands can vary drastically as the player moves up and down the neck,
-or uses different picking/plucking/strumming techniques.
+and different picking/plucking/strumming techniques at different orientations can make this layer have exponentially more factors to train for.
 In this project, this was done by only training with images that contain the specific player's hands
 and a specific clothing choice along with the specific guitar the player would be using.
 Again, future projects can look into diversifying this layer to account for all manner of player's
@@ -63,6 +63,7 @@ The negative images were negative images from the guitar classifier, plus a few 
 the specific guitar was shown without the hand(s) present.
 A similar number of examples was generated in comparision to the guitar classifier,
 but less stages were employeed.
+Additionally, a variety of hand orientations were chosen.
 
 \subsubsection{Guitar Modeling}
 The next stage of the overall algorithm is to create a model of the relevant aspects of the guitar we are interested in.
@@ -80,22 +81,24 @@ Thankfully, these locations and spacings are about the only standardized attribu
 so this can be done with minimal hassle given a sufficient amount of information in context of the lighting
 and occlusion of the instrument in the frame, once the guitar has been corrected to a standard location.
 \par
-The first stage of this process is to identify the neck and body of the guitar
-and determine the rotation angle and scale factor between the guitar in the current frame and the standard model.
-Again, since the player may be sublty moving the instrument with respect to neighboring frames,
-or moving toward or away from camera over time, 
-the scaling and rotation operations will need to be adjusted continually
-to ensure the guitar model can be continually tracked.
-Once the feature identification of the guitar is obtained to a high degree of confidence,
-the movement between shots of the fretboard is typically subtle enough that it can continue being tracked easily,
-and this layer will simply monitor the guitar reference frame's movement with respect to the absolute camera reference frame.
-\par
-The frets and strings will then be identified using a threshold technique leveraging the fact that
+The frets and strings were identified using a threshold technique leveraging the fact that
 (for at least the target bass guitar owned by the player) these features are shiny and reflect
 the light sources much more significantly than the guitar body and neck.
-This technique may prove unreliable, however as stated previously it can be averaged over several
-frames until the guitar features are located to a high degree of confidence.
-The end product may leverage this by instructing a live user to move around their hands until
+Once the thresholding was applied, Hough Line detection was employed in order to isolate the sharply
+defined lines of the strings from the rest of the picture. A large group of strings all going in the same
+direction that are of larger than normal size was determined to be correct for use in a clustering algorithm
+used to find the final amount of matching strings. A Jenks natural breaks algorithm was used to cluster these
+lines by their perpindicular distance (using the average angle of these lines), and the resulting groups
+where grouped into one representative line for that string.
+\par
+This technique proved fairly reliable in early trials, however lighting and orientation
+differences could lead to this detection to be somewhat fickle in identifying all of the frets.
+Since the guitar should not change scale in frame too much, and the range of orientation
+and lighting should be small, the idea was to continually estimate the location of each feature
+(string/fret) until a model is built that fully matches the expected number of strings and frets.
+This fully realized model could then be tracked for scale and orientation changes in order to
+accurately track where the guitar is moving during playing.
+The end product could leverage this by instructing a live user to move around their hands until
 the guitar model layer has successfully accomplished this, and inform the user when it is unable
 to track these quantities during operation.
 
@@ -109,14 +112,14 @@ Additionally, this means we are only interested in two points of the plucking ha
 (index and middle finger, only two finger plucking techniques will be considered)
 and four points of the fretting hand (no thumb fretting techniques will be considered) at this layer.
 \par
-The method used will be adapted from several papers concerning the real-time tracking of hands and fingers
+The method employed here consisted of isolating the skin-tone portion of the cropped hand images \cite{pyimagesearch,seereality}
+and passing them through a "skeletonization" filter \cite{skeleton} that blurs and subtracts the background (which is black)
+inwards towards the center portion of the image until only a thin, strong line representing the fingers are left.
+Hough Line detection was employed at this point in order to indentify line endings in an attempt to find the finger tip locations.
+\par
+A previous method that was intended to be adapted from several papers concerning the real-time tracking of hands and fingers
 \cite{aslhand,handposes,fingertracking}.
-However, many simplifications can be made as the use case in this situation is much simpler.
-Specifically, the features of interest of plucking hand in this scenario are usually in one of four configurations
-(both fingers extended, both retracted, and one extended and other retracted, of course assuming a certain playing style)
-and the fretting hand fingers should align within regions of the fretboard as defined by the grid of frets and strings.
-Therefore the quality of the hand pose estimation need not be as great as is required for ASL recognition as long
-as we are able to extract these important feature-specific locations to an acceptable level of confidence.
+However, the lack of available source code and complexity of the algorithms necessitated the simpler approach employed here.
 
 \subsubsection{Note Production Music Model}
 The final step is to interpret the hand models in context of the guitar models and determine when a plucking event occurs.
@@ -135,34 +138,44 @@ Initial prototyping work will be done using Python and OpenCV.
 The layers are defined as individual modules such that accuracy of each individual stage can be verified as the design progresses.
 Additional training modules for the Cascade Classifiers are located in an adjacent environment
 and links to the XML output are maintained such that these classifiers are a part of the configuration of the final product.
-As the project progresses an implementation in C++ will be done in order to substantially optimize the processing of the utility.
+%As the project progresses an implementation in C++ will be done in order to substantially optimize the processing of the utility.
 The performance goal for this application would be on order of the running time of the video.
 A system that can operate in real time would be considered succesful and open up a larger array of possibilities and use cases.
-\par
-The system will be constructed as a command line utility;
-either operating on an input video file of a specific format, with the option to
-print out the resultant tabulature to standard output (which may be piped to a file)
-or printing in-frame for use as a teaching aid.
-For verification, the obtained output of the program using the standard output method
-will be saved to a file and compared using an algorithm that will compare
-to a corresponding desired output file that will be constructed by hand for the input video.
+%\par
+%The system will be constructed as a command line utility;
+%either operating on an input video file of a specific format, with the option to
+%print out the resultant tabulature to standard output (which may be piped to a file)
+%or printing in-frame for use as a teaching aid.
+%For verification, the obtained output of the program using the standard output method
+%will be saved to a file and compared using an algorithm that will compare
+%to a corresponding desired output file that will be constructed by hand for the input video.
 
 \subsection{Evaluation}
-Results will be prototyped and verified via a small collection of ~2 min video files
-(approximately 50 total).
-The system will be vetted under a few different circumstances:
-standard performer, lighting, and instruments (20),
-standard enviroment with different fretting techniques (10),
-different lighting conditions (10),
-different instruments (5),
-and different performers (5).
-The system will be designed to adequetely handle these different circumstances
-without requiring enviroment-specific processing directives,
-except in the case of the different instruments/performers,
-where application-specific classifier files will be used.
+Results will be prototyped and verified via a small collection of ~1-2 min video files
+(5 total) with minor differences in lighting and clothing choice.
+%The system will be vetted under a few different circumstances:
+%standard performer, lighting, and instruments (20),
+%standard enviroment with different fretting techniques (10),
+%different lighting conditions (10),
+%different instruments (5),
+%and different performers (5).
+%The system will be designed to adequetely handle these different circumstances
+%without requiring enviroment-specific processing directives,
+%except in the case of the different instruments/performers,
+%where application-specific classifier files will be used.
 \par
-The video files will be reviewed prior to testing and the desired output will be synthesized by hand.
-The obtained output of the system will be measured against the desired output via the following:
+Each intermediate layer of the overall program will be vetted using simple criteria
+for accuracy, which are as follows:
+\begin{itemize}
+    \item Location Classifiers: Presence of located object
+    \item Guitar Model: Number of identified strings and frets
+    \item Hand Model: Number of identified finger tips
+\end{itemize}
+Additionally, manual verification and quality determinations will be made by the author by reviewing
+the quality of each layer using visual representations of the processing performed by each layer using the
+set of videos provided.
+\par
+For the final system, an extended verification methodology will be employed against the desired output via the following:
 \begin{itemize}
     \item Each note occurence in the desired output will be matched to a corresponding note in the obtained output
     \item If an incorrect note occurs in the obtained output, the algorithm will check ahead to see if further
@@ -172,9 +185,10 @@ The obtained output of the system will be measured against the desired output vi
     \item The output correctness factor will be number of matches minus the number of additions and misses
         over the percentage of notes in the desired output (floored at zero percent correct).
 \end{itemize}
+The video files will be reviewed prior to testing and the desired output will be synthesized by hand.
 \par
 The overall goal for correctness would be 90\%.
 This is an agressive goal for a computer vision application,
 especially for one measuring the location of fingers on a hand.
-Additionally, the obtained tablature file can attempt to be converted to midi representation
-using a conversion utility such as \cite{8notes}.
+Additionally, the obtained final tablature file can be converted to midi representation
+for qualitative feedback using a conversion utility such as \cite{8notes}.

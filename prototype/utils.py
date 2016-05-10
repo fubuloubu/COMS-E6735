@@ -316,8 +316,6 @@ class Cascade:
         return np.asmatrix(self.detected_obj).tolist()
 
 import operator as op
-# Implementation of Lloyd's algorithm
-# Adapted from https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
 def cluster(items, value=None, K=None):
     if value is None:
@@ -602,6 +600,28 @@ def save(outfile, transform=lambda x: x):
 def execute(infile, outfile, show=False, transform=lambda x: x):
     with VideoHandler(infile=infile, outfile=outfile, open_window=show) as vh:
         vh.run(transform)
+
+# Using errorstring, parse the results in filename into N records of M data
+# The errorstring uses {0}, {1}, ... {M} codes to print random data
+import re, ast
+def getresults(filename, errorstring, resultsfun):
+    # Remove the makefile constructs
+    print "Video: {0}".format(".".join(filename.split('.')[1:-1]))
+    # Get N array of strings matching frame using errorstring
+    with open(filename, 'r') as f:
+        # Find all matches to our given frame string, grabbing anything for a {} location
+        frames = re.findall(errorstring.replace('{}','.*'), f.read())
+        # Now get groups of data for each frame using a grouping regexp
+        framedata = map(lambda f: re.findall(errorstring.replace('{}','(.*?)'),f), frames)
+        # re.findall provides tuples if 2+ matches found, so clean that
+        framedata = map(lambda f: [i for i in (f[0] if type(f[0]) is tuple else f)], framedata)
+        # Evaluate the matches as literal python code, which should be acceptable 
+        # as it should have been printed originally as built-ins
+        framedata = map(lambda f: [ast.literal_eval(i) for i in f], framedata)
+        # Execute the checking function given to us and print the results
+        for data in framedata:
+            result = resultsfun(data)
+            print "Frame: {:>3}% Correct".format(result)
 
 if __name__ == '__main__':
     # If running this as a script,

@@ -2,6 +2,24 @@
 import sys
 import utils
 progname = 'locate.py'
+errorstring = '''
+locate.py: Stats
+       Guitar Coordinates:  {}
+ Picking Hand Coordinates:  {}
+Fretting Hand Coordinates:  {}
+locate.py: Stats
+'''
+
+# Verify results of each frame
+def verify(filename):
+    def results_fun(frame_data):
+        # Half the battle is finding the guitar
+        results  = 50*int(len(frame_data[0]) == 4)
+        # Then the hands
+        results += 25*int(len(frame_data[1]) == 4)
+        results += 25*int(len(frame_data[2]) == 4)
+        return results
+    utils.getresults(filename, errorstring, results_fun)
 
 # Initialize cascade classifiers
 guitar_cascade = utils.Cascade('bass_classifier.xml')
@@ -29,13 +47,8 @@ def main(frame):
     (guitar_coords, pickhand_coords, frethand_coords) = \
         guitar_and_hands(frame)
     # Print for debugging and testing purposes
-    sys.stderr.write('''
-{0}: Stats
-       Guitar Coordinates:  {1}
- Picking Hand Coordinates:  {2}
-Fretting Hand Coordinates:  {3}
-{0}: Stats
-'''.format(progname, guitar_coords, pickhand_coords, frethand_coords) ) 
+    sys.stderr.write( errorstring.format( \
+            guitar_coords, pickhand_coords, frethand_coords) ) 
     # Add rectangles for debugging purposes around them
     frame = utils.addrectangle(frame, guitar_coords)
     frame = utils.addrectangle(frame, pickhand_coords)

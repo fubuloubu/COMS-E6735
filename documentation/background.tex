@@ -1,22 +1,15 @@
 A review of the literature revealed unsurprisingly that a project concerning this topic is unprecedented.
 Similar systems exist that typically utilize pure audio recognition to identify arrangenents of notes with 
 a correctness approaching only about 85\%.
-These systems can typically only recognize events such as chords, due to the difficulty identifying individual sounds from an arrangement
-(\url{https://chordify.net}, \url{http://play.riffstation.com}).
+These systems can typically only recognize events such as chords, due to the difficulty identifying individual sounds from an arrangement 
+\cite{chordify,riffstation}.
 Additionally, these systems are challenged by fast-pace music as slowing down the input waveform will change
 the central tone present (in reality, this is possible, but only by tracking the slowdown and filtering the noise).
 \par
 
 A video system to identify notes would have the benefit that controlling the speed would not affect the
 ability to correctly identify musical events (within the recording speed limits of the video),
-although this means the system will be unable to identify the exact tone of that note without further modifications.
+although this means the system will be unable to identify the exact tone of that note without further tonal analysis.
 The system should find use in a amateur training scenario where it is often hard to identify the notes being played in a specific song, 
 or in a practice scenario where it might be useful to record the tabulature of a session
-instead of having to review a practice session to identify a specific progression that was being played.
-\par
-
-If time permits, it may be acceptable to hybridize this approach using audio recognition or visual reconstruction of audio data using vibration
-(\url{http://people.csail.mit.edu/mrub/VisualMic}).
-This could be performed to identify specific notes, or simply to help identify when a picking event occurs.
-This hybrid approach will improve overall correctness and robustness of results that a user might expect.
-Audio recognition and hybridization with computer vision techniques is note planned to be in scope of this project.
+instead of having to pain-stakingly review a practice session to identify a specific progression that was being played.

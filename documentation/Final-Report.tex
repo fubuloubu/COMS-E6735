@@ -1,13 +1,15 @@
 \documentclass[titlepage]{article}
 
 \author{Bryant Eisenbach}
-\def\project{Note Analyzer }
-\title{\project Final Report}
+\def\project{GuitarView }
+\title{\project Project}
+\date{\today}
 
 \def\authorship{B. Eisenbach (bje2113)}
 \input{formatting.tex}
 
 \begin{document}
+\input{title.tex}
 
 \section{Motivation}
 This project
@@ -16,17 +18,21 @@ This project
 \section{Background}
 \input{background.tex}
 
+\pagebreak
 \section{Methodology}
 \input{methodology.tex}
 
+\pagebreak
 \section{Results}
-%\input{results.tex}
+\input{results.tex}
+\section{Future Work}
+\input{future-work.tex}
 
-\section{Conclusion and Future Work}
-%\input{conclusion.tex}
-%\input{future-work.tex}
+\section{Conclusion}
+\input{conclusion.tex}
 
 \pagebreak
+\small
 \bibliography{bibliography.bib}{}
 \bibliographystyle{plain}
 \end{document}

@@ -7,3 +7,4 @@
 # Intermediates
 *.pyrun
 *.pytest
+*.results
