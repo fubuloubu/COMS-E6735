@@ -472,7 +472,7 @@ class VideoHandler:
         self.cap = cv2.VideoCapture(self.infile)
         
         # Get/set codec information for video file
-        default_codec = 'X264'
+        default_codec = 'MJPG'
         if self.infile == 0:
             self.codec = default_codec
             self.fc = None
@@ -517,8 +517,7 @@ class VideoHandler:
             self.writer = None
         else:
             print "WRITING TO FILE: {}".format(self.outfile)
-            self.fourcc = -1 #DEBUG
-            self.writer = cv2.VideoWriter(self.outfile, self.fourcc, self.fps, (self.w, self.h), True)
+            self.writer = cv2.VideoWriter(self.outfile.replace('mp4','avi'), self.fourcc, self.fps, (self.w, self.h), True)
         return self
 
     def get_frame(self):
