@@ -1,4 +1,4 @@
-# COMS-E6735 Term Project
+# Guitar Note Identification Project
 
 Algorithm:
 
