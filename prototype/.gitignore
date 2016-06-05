@@ -1,6 +1,3 @@
-# Python binaries
-*.pyc
-
 # video files (too large for github)
 *.mp4
 

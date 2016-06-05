@@ -1,2 +1,6 @@
+# Python Files
+*.pyc
+__pycache__/*
+
 # Vim files
 .*.swp
