@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+from functools import reduce
 import sys
 import utils
 import locate
@@ -31,7 +32,7 @@ def to_handmodel(hand_crop, direction='up'):
         handmodel = map(lambda l: [l[2], l[3]], fingerlines)
     else:
         handmodel = map(lambda l: [l[0], l[1]], fingerlines)
-    if len(handmodel) > 4:
+    if sum([1 for _ in handmodel]) > 4:
         handmodel = utils.cluster(handmodel, \
                 value=lambda p: (p[0])**2 + (p[1])**2, \
                 K=4)
@@ -64,15 +65,15 @@ def main(frame):
         get_hands(frame, pickhand_coords, frethand_coords)
     
     # Print for debugging and testing purposes
-    sys.stderr.write( errorstring.format(pickhand, frethand) ) 
+    sys.stderr.write( errorstring.format(list(pickhand), list(frethand)) ) 
     
     # Add overlay circles on fingers for display
     frame = utils.addrectangle(frame, pickhand_coords)
-    frame = utils.addtext(frame, "Pickhand has found {} fingertips".format(len(pickhand)), location="ur")
-    frame = reduce(utils.addcircle, [frame] + pickhand)
+    frame = utils.addtext(frame, "Pickhand has found {} fingertips".format(sum([1 for _ in pickhand])), location="ur")
+    frame = reduce(utils.addcircle, [frame] + list(pickhand))
     frame = utils.addrectangle(frame, frethand_coords)
-    frame = utils.addtext(frame, "Frethand has found {} fingertips".format(len(frethand)), location="ul")
-    frame = reduce(utils.addcircle, [frame] + frethand)
+    frame = utils.addtext(frame, "Frethand has found {} fingertips".format(sum([1 for _ in frethand])), location="ul")
+    frame = reduce(utils.addcircle, [frame] + list(frethand))
     return frame
 
 if __name__ == '__main__':

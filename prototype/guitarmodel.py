@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+from functools import reduce
 import utils
 import sys, math
 import locate
@@ -33,7 +34,7 @@ guitar["locations"]["frets"] = [] #0-th fret is the nut
 def display(frame, guitar):
     if guitar["available"]:
         text = ""
-        for attr, lines in guitar["locations"].iteritems():
+        for attr, lines in guitar["locations"].items():
             text += "Number of " + attr + ": {}\n".format(len(lines))
             frame = reduce(utils.addline, [frame] + lines)
         frame = utils.addtext(frame, text, "ul")
@@ -51,14 +52,14 @@ def get_guitar(frame):
         return guitar
     
     # Convert to line model
-    lines = map(lambda l: utils.tolinemodel(l), lines)
+    lines = list(map(lambda l: utils.tolinemodel(l), lines))
     
     # Get average angle of all lines
     string_angle = reduce(lambda avg, lm: avg + lm["angle"], [0] + lines)/len(lines)
     
     # Filter down to all lines within delta angle of the average
     delta_angle = 2 #degs
-    lines_near_avg = filter(lambda lm: abs(lm["angle"] - string_angle) < delta_angle, lines)
+    lines_near_avg = list(filter(lambda lm: abs(lm["angle"] - string_angle) < delta_angle, lines))
     # If the lines that fit the average are not the majority, exit
     if len(lines_near_avg) < len(lines)/2:
         return guitar
@@ -75,10 +76,10 @@ def get_guitar(frame):
     if len(guitar["locations"]["strings"]) < 4 or \
             len(string_lines) == NUM_STRINGS:
         # Update all strings
-        guitar["locations"]["strings"] = map(lambda lm: lm["line"], string_lines)
+        guitar["locations"]["strings"] = list(map(lambda lm: lm["line"], string_lines))
     else:
         # TODO: Collectively move strings by average displacement
-        guitar["locations"]["strings"] = map(lambda lm: lm["line"], string_lines)
+        guitar["locations"]["strings"] = list(map(lambda lm: lm["line"], string_lines))
     
     # Bounding box is x, y coordinates of both ends for first and last strings
     bounding_box = []
@@ -86,7 +87,7 @@ def get_guitar(frame):
     bounding_box.append(guitar["locations"]["strings"][0][2:])
     bounding_box.append(guitar["locations"]["strings"][-1][:2])
     bounding_box.append(guitar["locations"]["strings"][-1][2:])
-    print "Bounding box: {}".format(bounding_box)
+    print("Bounding box: {}".format(bounding_box))
     
     # Search for frets and append/update string locations
     lines = utils.linedetect(frame, minLineLength=20, maxLineGap=20)
@@ -102,12 +103,12 @@ def get_guitar(frame):
     # Filter down to all lines within twice the delta angle of the fret angle
     lines_near_avg = filter(lambda lm: abs(lm["angle"] - fret_angle) < 2*delta_angle, lines)
     # Filter down to lines that lie partially inside space made by strings
-    print "Frets Found:\n{}".format(map(lambda lm: lm["line"], lines_near_avg))
+    print("Frets Found:\n{}".format(map(lambda lm: lm["line"], lines_near_avg)))
     # TODO: Figure this out
     def box_check(lm): 
        return True
 
-    lines_near_avg = filter(box_check, lines_near_avg)
+    lines_near_avg = list(filter(box_check, lines_near_avg))
     
     # If there aren't enough lines to support this operation, return
     if len(lines_near_avg) < 1:#NUM_FRETS/2:

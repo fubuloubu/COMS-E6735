@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import cv2
 import numpy as np
 import random
@@ -130,7 +130,7 @@ def edgedetect(frame, threshold1=50, threshold2=300, aperature_size=5):
 def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLength=30, maxLineGap=5):
     frame = preprocessor(frame)
     # rho = 1, theta = Pi/180 or 1 deg
-    lines = cv2.HoughLinesP(frame, 1, cv2.cv.CV_PI/180, threshold, 0, minLineLength, maxLineGap)
+    lines = cv2.HoughLinesP(frame, 1, np.pi/180, threshold, 0, minLineLength, maxLineGap)
     if lines is None:
         return []
     return lines.tolist()[0]
@@ -222,7 +222,7 @@ def skinthresh(frame, minthresh=(0,140,95), maxthresh=(255,170,135)):
 
 # Get contours for the input black/white image
 def getcontours(frame):
-    contours, hierarchy = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
 # Detect skin using thresholding, attributed to Sam Kahn:
@@ -236,10 +236,11 @@ def skindetect(frame, binarypreprocessor=skinthresh):
     contours = getcontours(frame)
     # Filter only contours with a large enough area to be skin
     contours = filter(lambda c: cv2.contourArea(c) > 1000, contours)
-    if len(contours) == 0:
+    if sum([1 for _ in contours]) == 0:
         return #nothing
     # Return largest
     largest_area = 1
+    largest_contour= None
     for c in contours:
         area = cv2.contourArea(c)
         if area > largest_area:
@@ -360,7 +361,7 @@ def cluster(items, value=None, K=None):
 # Defaults for drawing functions
 defaultcolor = (255, 0, 255) # magenta
 thickness = 1
-lineType = cv2.CV_AA
+lineType = cv2.LINE_AA
 
 # Add text to frame at the specified location
 def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
@@ -368,7 +369,7 @@ def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
     (h, w) = frame.shape[:2]
     # Display settings
     fontFace = cv2.FONT_HERSHEY_PLAIN
-    fontScale = h/480 #scale with height of frame
+    fontScale = 1#h/480 #scale with height of frame
     linespace = 12*fontScale
     lines = text.split('\n')
     # Function used to create coordinates for each line
@@ -393,7 +394,7 @@ def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
     for i, line in enumerate(lines):
         ((sh,sw),bl) = cv2.getTextSize(line, fontFace, fontScale, thickness)
         cv2.putText(frame, line, coords[location](sh, sw, bl, i), 
-                fontFace, fontScale, color, thickness, lineType)
+            fontFace, fontScale, color, thickness, lineType)
     return frame
 
 # Add a line or list of lines to the frame
@@ -445,7 +446,7 @@ class VideoHandler:
             self.infile = 0 # Live Feed Camera 1
         else:
             self.infile = infile
-            print "READING FROM FILE: {}".format(self.infile)
+            print("READING FROM FILE: {}".format(self.infile))
         
         if outfile is None:
             self.outfile = None
@@ -460,11 +461,11 @@ class VideoHandler:
     def __enter__(self):
         if self.window_name is not None:
             # Initialize a full-screen window
-            print "INITIALIZING {}".format(self.window_name)
+            print("INITIALIZING {}".format(self.window_name))
             cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)          
-            cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.cv.CV_WINDOW_FULLSCREEN)
+            cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         else:
-            print "WARNING: NO DISPLAY SET!"
+            print("WARNING: NO DISPLAY SET!")
         
         # Initialize capture object
         self.cap = cv2.VideoCapture(self.infile)
@@ -477,44 +478,44 @@ class VideoHandler:
             self.bar = None
         else:
             # Set up codec using video file
-            fourcc_int = int(self.cap.get(cv2.cv.CV_CAP_PROP_FOURCC))
+            fourcc_int = int(self.cap.get(cv2.CAP_PROP_FOURCC))
             fourcc_hex = hex(fourcc_int)[2:]
             if fourcc_hex == '0':
                 raise IOError("No Codec Information in file {}".format(self.infile))
             else:
                 # Characters are backwards, so decode and reverse
                 self.codec = bytearray.fromhex(fourcc_hex).decode()[::-1]
-            print 'VIDEO CODEC: {}'.format(self.codec)
+            print("VIDEO CODEC: {}".format(self.codec))
             if self.codec == 'avc1':
                 self.codec = default_codec
-                print 'CHANGED TO: {}'.format(self.codec)
+                print("CHANGED TO: {}".format(self.codec))
             
             # We're processing a video so setup the progress bar
-            self.fc = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-            print "FRAME COUNT: {}".format(self.fc)
+            self.fc = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            print("FRAME COUNT: {}".format(self.fc))
             self.bar = Bar('Applying Transform', max=self.fc)
 
         # Get necessary video attributes from file
-        self.fps = self.cap.get(cv2.cv.CV_CAP_PROP_FPS)
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         # HACK: if NaN, set to 30FPS
         if np.isnan(self.fps):
-            print "WARNING: NO FPS SET!"
+            print("WARNING: NO FPS SET!")
             self.fps = 20
         else:
             self.fps = int(round(self.fps))
-        print "FPS: {}".format(self.fps)
+        print("FPS: {}".format(self.fps))
 
         # Height and width
-        self.w = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-        self.h = int(self.cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-        print "FRAME SIZE: {} x {} px".format(self.w, self.h)
-        self.fourcc = cv2.cv.CV_FOURCC(*self.codec)
+        self.w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        print("FRAME SIZE: {} x {} px".format(self.w, self.h))
+        self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
         
         # Initialize video writer and progress bar
         if self.outfile is None:
             self.writer = None
         else:
-            print "WRITING TO FILE: {}".format(self.outfile)
+            print("WRITING TO FILE: {}".format(self.outfile))
             self.writer = cv2.VideoWriter(self.outfile.replace('mp4','avi'), self.fourcc, self.fps, (self.w, self.h), True)
         return self
 
@@ -606,7 +607,7 @@ def execute(infile, outfile, show=False, transform=lambda x: x):
 import re, ast
 def getresults(filename, errorstring, resultsfun):
     # Remove the makefile constructs
-    print "Video: {0}".format(".".join(filename.split('.')[1:-1]))
+    print("Video: {0}".format(".".join(filename.split('.')[1:-1])))
     # Get N array of strings matching frame using errorstring
     with open(filename, 'r') as f:
         # Find all matches to our given frame string, grabbing anything for a {} location
@@ -621,7 +622,7 @@ def getresults(filename, errorstring, resultsfun):
         # Execute the checking function given to us and print the results
         for data in framedata:
             result = resultsfun(data)
-            print "Frame: {:>3}% Correct".format(result)
+            print("Frame: {:>3}% Correct".format(result))
 
 if __name__ == '__main__':
     # If running this as a script,

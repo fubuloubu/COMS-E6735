@@ -3,7 +3,8 @@ TARGETS=locate.results handmodel.results guitarmodel.results #musicmodel.results
 
 PYTHON=python
 
-SHOW=xiwi -T
+#Uncomment on chromebook
+SHOW=#xiwi -T
 IGNORE=/dev/null
 EXECUTE=./$(1) $(2) 2>$(4) > $(3)
 
@@ -60,6 +61,7 @@ results.tex: $(foreach target,$(TARGETS),$(subst py,results,$(target)))
 .PHONY: clean
 clean:
 	@echo "CLEAN prototype"
+	@rm -rf __pycache__
 	@rm -f *.pyc
 	@rm -f *.pyrun
 	@rm -f *.pytest
