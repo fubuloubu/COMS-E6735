@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import sys
-sys.path.append('../prototype')
 import utils
 import operator as op
 
