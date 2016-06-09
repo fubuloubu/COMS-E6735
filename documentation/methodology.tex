@@ -1,69 +1,41 @@
 \subsection{Overview}
 The \project Project has many layers that must come together to obtain the desired result.
 The following is a description of these layers.
-\subsubsection{Guitar Classification}
+\subsubsection{Guitar Localization}
 The first layer is to simply identify the location of the guitar within the video frame,
 as well as the location of the hands on the guitar.
 In practice however this is not an easy task.
-The first aspect of this is to train a Cascade Classifier that can accurately find a pre-defined guitar.
-Cascade Classifiers are very susceptible to their input training images,
-which means an accurate classifier has to have many depictions of the objects
-for it's inteded usage scenario as possible \cite{opencv,codingrobin}.
+The first aspect of this is to 
+This will be done using a Binary Detector matching algorithm against a stock photo of the guitar
+in order to identify a match within each frame. \cite{opencv}.
+\par
 Since there exists a nearly endless quantity of not only guitar shapes, body styles, colors, lengths, etc.
 that suites an individual owner's tastes (possibly more variability than even the owners themselves!),
-it is necessary to severely limit the guitars that are able to be detected by this layer.
-In particular due to time constraints, it is necessary to limit this to 1 specific guitar.
-Future projects can train better classifiers by adding more types, shapes, and colors of guitars,
-or otherwise diversify this layer using other techniques.
+the use of the Binary Detector algorithm will be more accurate than using a trained Cascade Classifier,
+as was attempted originally.
+The algorithm could be refined such that a set of generic descriptor features are identified so
+this layer can identify many different styles for a type of guitars.
+For now, the plan is to accept as input a stock photo of the guitar that is to be identified.
 \par
-Not only does the guitar classification layer need to recognize these guitars,
+Not only does the guitar localization layer need to recognize these guitars,
 but will also need to recognize these guitars in context of the players who play them.
 This means the ability to recognize the guitar despite player's hands and potentially clothing obscuring
-features of the guitar that may help to classify it.
+features of the guitar that may help to locate it.
 Additionally, the location of the hands can vary drastically as the player moves up and down the neck,
-and different picking/plucking/strumming techniques at different orientations can make this layer have exponentially more factors to train for.
-In this project, this was done by only training with images that contain the specific player's hands
-and a specific clothing choice along with the specific guitar the player would be using.
-Again, future projects can look into diversifying this layer to account for all manner of player's
-skin color, clothing choices, playing styles and other differences that could affect classification.
-Truly, this layer has a significant depth to it that could be explored in a separate project in it's own right.
-\par
-The classifier input images were created using recorded video files:
-one set for positive images and one set for negative images.
-The positive video file contained the particular player playing the particular guitar
-and wearing the particular clothes intended for the final classifier to match against.
-The images were parsed by every Nth spaced frame (N = 10 was chosen)
-and each frame was manually reviewed for appropiateness and removed if necessary
-(about 40-45 positive images were chosen for each classifier).
-Those images were then cropped such that the guitar was the main component in the image,
-then fed to the sample generator to generate positive samples
-(10 randomized samples for each frame were created).
-The negative video was taken of the background with the particular player both in the scene
-and not in the scene.
-In particular, the player was instructed to play air guitar such that the hand positions
-without the guitar could be simulated as being part of the negatives.
-The images were parsed out of the video file by every Nth spaced frame (N=4) in order to generate
-a similar number of negative examples to the generated positive examples
+and different picking/plucking/strumming techniques at different orientations
+means this layer has exponentially more factors to account for.
+This means that the Detector algorithm must define use sufficient amount of detectors features
+such that the overlaid hands and clothing do not interfere with the operation of the Detector.
 
-\subsubsection{Hand Classification}
+\subsubsection{Hand Localization}
 The next layer is to find the location of both fretting hand and plucking/picking/strumming hand in context of the guitar.
-Again, we are going to leverage the OpenCV Cascade Classifier trained using the specific player's hands overlaid on the
-specific guitar that player is to be playing.
-This classifier can be a bit more simplistic however since the context we are using this 
-within has much less variability then the guitar layer, 
-i.e. we know that the hands must be located on or near the fretboard and on or near the body of the guitar.
+This layer can be simplistic since the hands are easy to find
+i.e. we know that one hand must be located on or near the fretboard and the other on or near the body of the guitar.
 Several shortcuts could be taken to isolate the location of the hands by parsing the guitar orientation
 and cutting the frame in half along the body/neck joint to segment the search along those two distinct parts.
-However the choice was made not to do this at this layer since the fretting and picking hands have distinctly
-different shapes that should be make classification between the two possible.
 \par
-The hand classifier input images were taken from the guitar training files.
-The positive images were manually cropped in each frame from the positive examples of the guitar classifier.
-The negative images were negative images from the guitar classifier, plus a few extra frames where
-the specific guitar was shown without the hand(s) present.
-A similar number of examples was generated in comparision to the guitar classifier,
-but less stages were employeed.
-Additionally, a variety of hand orientations were chosen.
+A standard skin detection filter will be employeed leveraging the segmented guitar location in order to bound
+the two regions of skin that define the hand locations on the guitar.
 
 \subsubsection{Guitar Modeling}
 The next stage of the overall algorithm is to create a model of the relevant aspects of the guitar we are interested in.
@@ -79,20 +51,28 @@ and additionally move their hands significantly which obscures parts of the regi
 so the guitar model will need to be partially estimated until data is available to correct the obscured features.
 Thankfully, these locations and spacings are about the only standardized attributes of a guitar,
 so this can be done with minimal hassle given a sufficient amount of information in context of the lighting
-and occlusion of the instrument in the frame, once the guitar has been corrected to a standard location.
+and occlusion of the instrument in the frame, once the guitar has been successfully and fully localized.
 \par
-The frets and strings were identified using a threshold technique leveraging the fact that
+The frets and strings will be identified using a threshold technique which leverages the fact that
 (for at least the target bass guitar owned by the player) these features are shiny and reflect
 the light sources much more significantly than the guitar body and neck.
-Once the thresholding was applied, Hough Line detection was employed in order to isolate the sharply
-defined lines of the strings from the rest of the picture. A large group of strings all going in the same
-direction that are of larger than normal size was determined to be correct for use in a clustering algorithm
-used to find the final amount of matching strings. A Jenks natural breaks algorithm was used to cluster these
+Once the thresholding was applied, Hough Line detection (using a relatively large threshold)
+is employed in order to isolate the sharply defined lines of the strings from the rest of the picture.
+A group of lines all going in the same direction that are of this larger size are then fed into a clustering algorithm
+used to find the final amount of matching strings. A Jenks natural breaks algorithm is used to cluster these
 lines by their perpindicular distance (using the average angle of these lines), and the resulting groups
-where grouped into one representative line for that string.
+are grouped into one representative line for that string.
 \par
-This technique proved fairly reliable in early trials, however lighting and orientation
-differences could lead to this detection to be somewhat fickle in identifying all of the frets.
+Once the strings are isolated and determined to be correct, the next stage is to find the frets.
+The frets are harder to locate given that they are partly occluded by the strings and that they are
+much shorter in length. However, we can leverage the fact that they are perpindicular to the strings
+and leverage this fact to limit the Hough Line detection algorithm using a shorter threshold for the lines
+by limiting only to the lines in that perpindicular direction and bounded inside a volume occupied by the strings
+(with sufficient buffer). Using these restrictions as well as mathematical models for the ideal locations of
+the frets, fret detection has moderately accurate results.
+\par
+These techniques proves fairly reliable in early trials, however lighting and orientation
+differences could lead to this algorithm to be somewhat fickle in identifying all of the frets.
 Since the guitar should not change scale in frame too much, and the range of orientation
 and lighting should be small, the idea was to continually estimate the location of each feature
 (string/fret) until a model is built that fully matches the expected number of strings and frets.
@@ -103,8 +83,8 @@ the guitar model layer has successfully accomplished this, and inform the user w
 to track these quantities during operation.
 
 \subsubsection{Hand Modeling}
-From the hand classification stage we now need to identify the players fingering and plucking points
-by fitting a simplified hand model to each hand image obtained prior.
+From the hand location stage we now need to identify the players fingering and plucking points
+by fitting a simplified hand model to each hand image obtained prior and obtaining the interesting fingertips.
 For the purposes of this project, we will only consider finger plucking on the right hand of the player
 since the bass guitar is the only instrument under consideration
 (this only works for right handed guitar players, although a simple mirror operation could possibly correct this easily).
@@ -138,7 +118,7 @@ Initial prototyping work will be done using Python and OpenCV.
 The layers are defined as individual modules such that accuracy of each individual stage can be verified as the design progresses.
 Additional training modules for the Cascade Classifiers are located in an adjacent environment
 and links to the XML output are maintained such that these classifiers are a part of the configuration of the final product.
-%As the project progresses an implementation in C++ will be done in order to substantially optimize the processing of the utility.
+As the project progresses an implementation in C++ will be done in order to substantially optimize the processing of the utility.
 The performance goal for this application would be on order of the running time of the video.
 A system that can operate in real time would be considered succesful and open up a larger array of possibilities and use cases.
 %\par
@@ -152,7 +132,7 @@ A system that can operate in real time would be considered succesful and open up
 
 \subsection{Evaluation}
 Results will be prototyped and verified via a small collection of ~1-2 min video files
-(5 total) with minor differences in lighting and clothing choice.
+(50 total) with minor differences in lighting, clothing choice, and playing style.
 %The system will be vetted under a few different circumstances:
 %standard performer, lighting, and instruments (20),
 %standard enviroment with different fretting techniques (10),
@@ -172,7 +152,7 @@ for accuracy, which are as follows:
     \item Hand Model: Number of identified finger tips
 \end{itemize}
 Additionally, manual verification and quality determinations will be made by the author by reviewing
-the quality of each layer using visual representations of the processing performed by each layer using the
+the quality of each layer using visual representations of the processing performed by each layer against the
 set of videos provided.
 \par
 For the final system, an extended verification methodology will be employed against the desired output via the following:
