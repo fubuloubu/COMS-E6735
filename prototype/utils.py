@@ -326,16 +326,19 @@ class Cascade:
 
 # Helper class to try using a binary descriptor to find an object in frame
 class BinaryDescriptor:
-    def __init__(self, obj_image, num_matches=2, \
+    
+    def __init__(self, obj_image, num_matches=2, min_matches=5, \
             detector_init=cv2.ORB_create, detector_params=dict(), \
             matcher_init=cv2.BFMatcher, matcher_params=dict()):
         
         # Load image file
+        sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
         self.obj_image = cv2.imread(obj_image)
-        (img_height, img_width, _) = self.obj_image.shape
-        self.obj_bounding_box = [[0, 0], [img_height, img_width]]
-        sys.stderr.write('BinaryDescriptor Object Image Size: {}\n'
-            .format(self.obj_bounding_box[-1]))
+        
+        # Measure bounding box of image
+        h, w, _ = self.obj_image.shape
+        self.obj_bounding_box = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+        sys.stderr.write('BinaryDescriptor Object Image Size: {}px x {}px\n'.format(h, w))
         
         # Get descriptors for object image
         self.detector = detector_init(**detector_params)
@@ -345,6 +348,7 @@ class BinaryDescriptor:
         # Setup matcher and parameters
         self.matcher = matcher_init(**matcher_params)
         self.num_matches = num_matches
+        self.min_matches = min_matches
         
         # Set detected object to null
         self.detected_obj = None
@@ -364,70 +368,37 @@ class BinaryDescriptor:
         # Apply ratio test to filter matches
         good_matches = []
         for m,n in matches:
-            if m.distance < 0.75*n.distance:
-                good_matches.append(m)
+            #if m.distance < 0.75*n.distance:
+            good_matches.append(m)
         sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # matches: {}, # good matches: {}\n'.
             format(type(self.matcher).__name__, \
             len(matches), len(good_matches)))
         return good_matches
     
-    def _get_transformation_matrix(self, matches):
-        transformation_matrix = None
-        sys.stderr.write('BinaryDescriptor Transform Matrix: {}\n'.format(transformation_matrix))
-        return transformation_matrix
-    
-    # Validate if match can construct a coherant transformation matrix
-    def _validate_match(self, transformation_matrix, matches):
-        variance = 0.000
-        sys.stderr.write('BinaryDescriptor Transform Matrix Variance: {}\n'.format(variance))
-        # Return True if our accuracy threshold is met
-        return variance < 0.200
+    # Method to obtain transformation matrix of original object image to target image
+    def _get_transformation_matrix(self, keypoints, matches):
+        src_pts = np.float32([ self.obj_keypoints[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
+        dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
+        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+        sys.stderr.write('BinaryDescriptor Transform Matrix:\n{}\n'.format(M))
+        return M, mask
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
         # Compute matches
-        (_, descs) = self._get_keypoints_descriptors(frame)
-        matches = self._get_match(descs)
-        
-        # Construct transformation matrix
-        transformation_matrix = self._get_transformation_matrix(matches)
-        
-        # If valid match was found, compute transformation matrix
-        if self._validate_transformation_matrix(transformation_matrix, matches):
-            # Apply transformation matrix to object image to compute border around object
-            self.detected_obj = transformation_matrix * self.obj_bounding_box
-        else:
-            self.detected_obj = None
+        (keypoints, descriptors) = self._get_keypoints_descriptors(frame)
+        matches = self._get_match(descriptors)
+        self.detected_obj = None
+        # If valid number of matches were found, compute transformation matrix
+        if len(matches) > self.min_matches:
+            # Construct transformation matrix
+            transformation_matrix, _ = self._get_transformation_matrix(keypoints, matches)
+            if transformation_matrix is not None:
+                # Apply transformation matrix to object image to compute border around object
+                self.detected_obj = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)
+                self.detected_obj = [[int(round(p[0][0])), int(round(p[0][1]))] for p in self.detected_obj]
+        sys.stderr.write("BinaryDescriptor Detected Object:\n{}\n".format(self.detected_obj))
         return self.detected_obj
-    
-    # Draw matches (DEBUG ONLY)
-    def draw_matches(self, frame, \
-        draw_params=dict(matchColor=(0,255,0), singlePointColor=(255,0,0), flags=2)):
-        
-        # Compute matches
-        (keypoints, descs) = self._get_keypoints_descriptors(frame)
-        matches = self._get_match(descs)
-        MIN_MATCH_COUNT = 5
-        if len(matches)>MIN_MATCH_COUNT:
-            src_pts = np.float32([ self.obj_keypoints[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
-            dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
-            
-            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-            matchesMask = mask.ravel().tolist()
-            
-            h,w = self.obj_image.shape
-            pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-            dst = cv2.perspectiveTransform(pts,M)
-            
-            frame = cv2.polylines(frame,[np.int32(dst)],True,255,3, cv2.LINE_AA)
-        else:
-            print("Not enough matches are found - {}/{}".format(len(matches),MIN_MATCH_COUNT))
-            matchesMask = None
-            
-        draw_params['matchesMask'] = matchesMask # draw only inliers
-        
-        return cv2.drawMatchesKnn(self.obj_image, self.obj_keypoints, \
-            frame, keypoints, matches, None, **draw_params)
 
 import operator as op
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
