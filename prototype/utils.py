@@ -326,19 +326,19 @@ class Cascade:
 
 # Helper class to try using a binary descriptor to find an object in frame
 class BinaryDescriptor:
-    
-    def __init__(self, obj_image, num_matches=2, min_matches=5, \
+    def __init__(self, obj_image, num_matches=2, preprocessor=lambda f: f,\
             detector_init=cv2.ORB_create, detector_params=dict(), \
             matcher_init=cv2.BFMatcher, matcher_params=dict()):
+        
+        # Setup preprocessor
+        self.preprocessor = preprocessor
         
         # Load image file
         sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
         self.obj_image = cv2.imread(obj_image)
-        
-        # Measure bounding box of image
         h, w, _ = self.obj_image.shape
-        self.obj_bounding_box = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-        sys.stderr.write('BinaryDescriptor Object Image Size: {}px x {}px\n'.format(h, w))
+        self.obj_bounding_box = np.float32([[0, 0], [0,h-1], [w-1, h-1], [w-1, 0]]).reshape(-1,1,2)
+        sys.stderr.write('BinaryDescriptor Object Image Size: {}x{}px\n'.format(h, w))
         
         # Get descriptors for object image
         self.detector = detector_init(**detector_params)
@@ -348,13 +348,13 @@ class BinaryDescriptor:
         # Setup matcher and parameters
         self.matcher = matcher_init(**matcher_params)
         self.num_matches = num_matches
-        self.min_matches = min_matches
         
         # Set detected object to null
         self.detected_obj = None
         
     # Method to get keypoints and descriptors from frame using detector
     def _get_keypoints_descriptors(self, frame):
+        frame = self.preprocessor(frame)
         gray = grayscale(frame)
         (keypoints, descriptors) = self.detector.detectAndCompute(gray, None)
         sys.stderr.write("BinaryDescriptor Detector ({} Alg) - # keypoints: {}\n".
@@ -368,37 +368,54 @@ class BinaryDescriptor:
         # Apply ratio test to filter matches
         good_matches = []
         for m,n in matches:
-            #if m.distance < 0.75*n.distance:
-            good_matches.append(m)
-        sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # matches: {}, # good matches: {}\n'.
+            if m.distance < 0.75*n.distance:
+                good_matches.append(m)
+        sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # good matches: {}/{}\n'.
             format(type(self.matcher).__name__, \
-            len(matches), len(good_matches)))
+            len(good_matches), len(matches)))
         return good_matches
     
-    # Method to obtain transformation matrix of original object image to target image
     def _get_transformation_matrix(self, keypoints, matches):
-        src_pts = np.float32([ self.obj_keypoints[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
-        dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
-        M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
-        sys.stderr.write('BinaryDescriptor Transform Matrix:\n{}\n'.format(M))
-        return M, mask
+        
+        obj   = np.float32([ self.obj_keypoints[ m.queryIdx ].pt for m in matches ]).reshape(-1,1,2)
+        scene = np.float32([          keypoints[ m.trainIdx ].pt for m in matches ]).reshape(-1,1,2)
+        
+        (transformation_matrix, _) = cv2.findHomography( obj, scene, cv2.RANSAC )
+        sys.stderr.write('BinaryDescriptor Transform Matrix: {}\n'.format(transformation_matrix))
+        return transformation_matrix
+    
+    # Validate if match can construct a coherant transformation matrix
+    def _validate_match(self, transformation_matrix, matches):
+        variance = 0.000
+        variance = 1#DEBUG
+        sys.stderr.write('BinaryDescriptor Transform Matrix Variance: {}\n'.format(variance))
+        # Return True if our accuracy threshold is met
+        return variance < 0.200
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
         # Compute matches
-        (keypoints, descriptors) = self._get_keypoints_descriptors(frame)
-        matches = self._get_match(descriptors)
+        (keypts, descs) = self._get_keypoints_descriptors(frame)
+        matches = self._get_match(descs)
+        
+        # Reset detected object
         self.detected_obj = None
-        # If valid number of matches were found, compute transformation matrix
-        if len(matches) > self.min_matches:
+        if len(matches) > 0:
             # Construct transformation matrix
-            transformation_matrix, _ = self._get_transformation_matrix(keypoints, matches)
-            if transformation_matrix is not None:
+            transformation_matrix = self._get_transformation_matrix(keypts, matches)
+            
+            # If valid match was found, compute transformation matrix
+            if self._validate_match(transformation_matrix, matches):
                 # Apply transformation matrix to object image to compute border around object
                 self.detected_obj = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)
-                self.detected_obj = [[int(round(p[0][0])), int(round(p[0][1]))] for p in self.detected_obj]
-        sys.stderr.write("BinaryDescriptor Detected Object:\n{}\n".format(self.detected_obj))
+        
+        sys.stderr.write('BinaryDescriptor Object Location: {}\n'.format(self.detected_obj))
         return self.detected_obj
+    
+    # Draw matches (DEBUG ONLY)
+    def draw_matches(self, frame):
+        frame = draw_object(frame, self.detect_obj(frame))
+        return frame
 
 import operator as op
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
