@@ -337,7 +337,8 @@ class BinaryDescriptor:
         sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
         self.obj_image = cv2.imread(obj_image)
         h, w, _ = self.obj_image.shape
-        self.obj_bounding_box = np.float32([[0, 0], [0,h-1], [w-1, h-1], [w-1, 0]]).reshape(-1,1,2)
+        self.obj_bounding_box = np.float32([[0, 0], [w-1, h-1]])
+        self.obj_bounding_box = np.array([self.obj_bounding_box]) 
         sys.stderr.write('BinaryDescriptor Object Image Size: {}x{}px\n'.format(h, w))
         
         # Get descriptors for object image
@@ -368,7 +369,7 @@ class BinaryDescriptor:
         # Apply ratio test to filter matches
         good_matches = []
         for m,n in matches:
-            if m.distance < 0.75*n.distance:
+            if m.distance < 0.80*n.distance:
                 good_matches.append(m)
         sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # good matches: {}/{}\n'.
             format(type(self.matcher).__name__, \
@@ -386,11 +387,12 @@ class BinaryDescriptor:
     
     # Validate if match can construct a coherant transformation matrix
     def _validate_match(self, transformation_matrix, matches):
+        if transformation_matrix is None:
+            return False
         variance = 0.000
-        variance = 1#DEBUG
         sys.stderr.write('BinaryDescriptor Transform Matrix Variance: {}\n'.format(variance))
         # Return True if our accuracy threshold is met
-        return variance < 0.200
+        return variance < 0.2
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
@@ -407,15 +409,12 @@ class BinaryDescriptor:
             # If valid match was found, compute transformation matrix
             if self._validate_match(transformation_matrix, matches):
                 # Apply transformation matrix to object image to compute border around object
-                self.detected_obj = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)
+                bounding_box = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)
+                [[x1, y1], [x2, y2]] = list(bounding_box[0])
+                self.detected_obj = [[x1,y1],[x1,y2],[x2,y2],[x2,y1]]
         
-        sys.stderr.write('BinaryDescriptor Object Location: {}\n'.format(self.detected_obj))
+        sys.stderr.write('BinaryDescriptor Object Frame: {}\n'.format(self.detected_obj))
         return self.detected_obj
-    
-    # Draw matches (DEBUG ONLY)
-    def draw_matches(self, frame):
-        frame = draw_object(frame, self.detect_obj(frame))
-        return frame
 
 import operator as op
 # Fast implementation of jenks: https://github.com/perrygeo/jenks
