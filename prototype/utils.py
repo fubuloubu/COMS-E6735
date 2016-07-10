@@ -328,14 +328,14 @@ class BinaryDescriptor:
         # Load image file
         sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
         self.obj_image = cv2.imread(obj_image)
-        h, w, _ = self.obj_image.shape
+        ( h, w, _ ) = self.obj_image.shape
         self.obj_bounding_box = np.float32([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]])
         self.obj_bounding_box = np.array([self.obj_bounding_box]) 
         sys.stderr.write('BinaryDescriptor Object Image Size: {}x{}px\n'.format(h, w))
         
         # Get descriptors for object image
         self.detector = detector_init(**detector_params)
-        (self.obj_keypoints, self.obj_descriptors) = \
+        ( self.obj_keypoints, self.obj_descriptors ) = \
             self._get_keypoints_descriptors(self.obj_image)
         
         # Setup matcher and parameters
@@ -349,7 +349,7 @@ class BinaryDescriptor:
     def _get_keypoints_descriptors(self, frame):
         frame = self.preprocessor(frame)
         gray = grayscale(frame)
-        (keypoints, descriptors) = self.detector.detectAndCompute(gray, None)
+        ( keypoints, descriptors ) = self.detector.detectAndCompute(gray, None)
         sys.stderr.write("BinaryDescriptor Detector ({} Alg) - # keypoints: {}\n".
             format(type(self.detector).__name__.replace('xfeatures2d_',''), \
             len(keypoints)))
@@ -361,7 +361,7 @@ class BinaryDescriptor:
         # Apply ratio test to filter matches
         good_matches = []
         for m,n in matches:
-            if m.distance < 0.80*n.distance:
+            if m.distance < 0.70*n.distance:
                 good_matches.append(m)
         sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # good matches: {}/{}\n'.
             format(type(self.matcher).__name__, \
@@ -371,7 +371,7 @@ class BinaryDescriptor:
     def _get_transformation_matrix(self, keypoints, matches):
         obj   = np.float32([ self.obj_keypoints[ m.queryIdx ].pt for m in matches ]).reshape(-1,1,2)
         scene = np.float32([          keypoints[ m.trainIdx ].pt for m in matches ]).reshape(-1,1,2)
-        (transformation_matrix, _) = cv2.findHomography( obj, scene, cv2.RANSAC, 10 )
+        ( transformation_matrix, _ ) = cv2.findHomography( obj, scene, cv2.RANSAC, 10 )
         sys.stderr.write('BinaryDescriptor Transform Matrix:\n{}\n'.format(transformation_matrix))
         return transformation_matrix
     
@@ -393,7 +393,7 @@ class BinaryDescriptor:
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
         # Compute matches
-        (keypts, descs) = self._get_keypoints_descriptors(frame)
+        ( keypts, descs ) = self._get_keypoints_descriptors(frame)
         matches = self._get_match(descs)
         # Reset detected object
         self.detected_obj = None
