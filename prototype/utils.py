@@ -337,7 +337,7 @@ class BinaryDescriptor:
         sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
         self.obj_image = cv2.imread(obj_image)
         h, w, _ = self.obj_image.shape
-        self.obj_bounding_box = np.float32([[0, 0], [w-1, h-1]])
+        self.obj_bounding_box = np.float32([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]])
         self.obj_bounding_box = np.array([self.obj_bounding_box]) 
         sys.stderr.write('BinaryDescriptor Object Image Size: {}x{}px\n'.format(h, w))
         
@@ -377,12 +377,10 @@ class BinaryDescriptor:
         return good_matches
     
     def _get_transformation_matrix(self, keypoints, matches):
-        
         obj   = np.float32([ self.obj_keypoints[ m.queryIdx ].pt for m in matches ]).reshape(-1,1,2)
         scene = np.float32([          keypoints[ m.trainIdx ].pt for m in matches ]).reshape(-1,1,2)
-        
-        (transformation_matrix, _) = cv2.findHomography( obj, scene, cv2.RANSAC )
-        sys.stderr.write('BinaryDescriptor Transform Matrix: {}\n'.format(transformation_matrix))
+        (transformation_matrix, _) = cv2.findHomography( obj, scene, cv2.RANSAC, 10 )
+        sys.stderr.write('BinaryDescriptor Transform Matrix:\n{}\n'.format(transformation_matrix))
         return transformation_matrix
     
     # Validate if match can construct a coherant transformation matrix
@@ -393,27 +391,31 @@ class BinaryDescriptor:
         sys.stderr.write('BinaryDescriptor Transform Matrix Variance: {}\n'.format(variance))
         # Return True if our accuracy threshold is met
         return variance < 0.2
+                
+    # Apply transformation matrix to object image to compute border around object
+    def _get_object_frame_from_transformation_matrix(self, transformation_matrix):
+        bounding_box = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)[0]
+        sys.stderr.write('BinaryDescriptor Object Frame:\n{}\n'.format(bounding_box))
+        return bounding_box
+        # Re-order bounding box to be a list of lines
+        #[[x1, y1], [x2, y2]] = list(np.uint16(bounding_box))
+        #return [[x1,y1],[x1,y2],[x2,y2],[x2,y1]]
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
         # Compute matches
         (keypts, descs) = self._get_keypoints_descriptors(frame)
         matches = self._get_match(descs)
-        
         # Reset detected object
         self.detected_obj = None
         if len(matches) > 0:
             # Construct transformation matrix
             transformation_matrix = self._get_transformation_matrix(keypts, matches)
-            
             # If valid match was found, compute transformation matrix
             if self._validate_match(transformation_matrix, matches):
-                # Apply transformation matrix to object image to compute border around object
-                bounding_box = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)
-                [[x1, y1], [x2, y2]] = list(bounding_box[0])
-                self.detected_obj = [[x1,y1],[x1,y2],[x2,y2],[x2,y1]]
+                self.detected_obj = \
+                    self._get_object_frame_from_transformation_matrix(transformation_matrix)
         
-        sys.stderr.write('BinaryDescriptor Object Frame: {}\n'.format(self.detected_obj))
         return self.detected_obj
 
 import operator as op
