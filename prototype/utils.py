@@ -316,14 +316,6 @@ class Cascade:
             self.detected_obj = objects[0]
         return np.asmatrix(self.detected_obj).tolist()
 
-# Detectors
-# cv2.ORB_create() #fastest
-# cv2.BRISK_create() #best
-
-# Matchers
-# cv2.BFMatcher() #works
-# cv2.FlannBasedMatcher() #doesn't work
-
 # Helper class to try using a binary descriptor to find an object in frame
 class BinaryDescriptor:
     def __init__(self, obj_image, num_matches=2, preprocessor=lambda f: f,\
@@ -397,9 +389,6 @@ class BinaryDescriptor:
         bounding_box = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)[0]
         sys.stderr.write('BinaryDescriptor Object Frame:\n{}\n'.format(bounding_box))
         return bounding_box
-        # Re-order bounding box to be a list of lines
-        #[[x1, y1], [x2, y2]] = list(np.uint16(bounding_box))
-        #return [[x1,y1],[x1,y2],[x2,y2],[x2,y1]]
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
     def detect_obj(self, frame):
