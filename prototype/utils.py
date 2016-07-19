@@ -8,6 +8,12 @@ import operator as op
 from jenks import jenks
 from progress.bar import Bar
 
+# Used to print debug 
+def print_debug_msg(funcname="", msg=""):
+    if funcname is not None:
+        msg = (funcname + " " + msg)
+    sys.stderr.write("DEBUG: " + msg + "\n")
+
 # Flip video around
 def mirror(frame):
     return cv2.flip(frame,1)
@@ -35,8 +41,8 @@ def reposition(cropped_obj, crop_coords):
         len(crop_coords) == 4:
         return [p + crop_coords[i % 2] for i, p in enumerate(cropped_obj)]
     else:
-        sys.stderr.write("Not cropping this:\n{}\nwith this:\n{}\n".format(\
-                cropped_obj, crop_coords))
+        print_debug_msg("reposition", \
+                "Not cropping this:\n{}\nwith this:\n{}".format(cropped_obj, crop_coords))
         return cropped_obj
 
 def blankframe(frameToCopy=None, size=[640,480]):
@@ -316,22 +322,43 @@ class Cascade:
             self.detected_obj = objects[0]
         return np.asmatrix(self.detected_obj).tolist()
 
+"""
+Detector used for identifying features
+Options Include:
+    cv2.xfeatures2d.SURF_create
+    cv2.ORB
+"""
+default_detector = \
+    cv2.xfeatures2d.SIFT_create
+default_detector_options = dict()
+
+"""
+Matcher used for identifying possible matches from feature sets
+Options Include:
+    cv2.FlannBasedMatcher
+"""
+default_matcher = \
+    cv2.BFMatcher
+default_matcher_options = dict()
+
 # Helper class to try using a binary descriptor to find an object in frame
 class BinaryDescriptor:
-    def __init__(self, obj_image, num_matches=2, preprocessor=lambda f: f,\
-            detector_init=cv2.ORB_create, detector_params=dict(), \
-            matcher_init=cv2.BFMatcher, matcher_params=dict()):
+    def _print_debug_msg(self, msg):
+        print_debug_msg(self.__class__.__name__, msg)
+
+    def __init__(self, obj_image, preprocessor=gaussian,\
+            detector_init=default_detector, detector_params=default_detector_options,\
+            matcher_init=default_matcher, matcher_params=default_matcher_options):
         
         # Setup preprocessor
         self.preprocessor = preprocessor
         
         # Load image file
-        sys.stderr.write('BinaryDescriptor Object File: {}\n'.format(obj_image))
+        self._print_debug_msg("Object File: {}".format(obj_image))
         self.obj_image = cv2.imread(obj_image)
         ( h, w, _ ) = self.obj_image.shape
-        self.obj_bounding_box = np.float32([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]])
-        self.obj_bounding_box = np.array([self.obj_bounding_box]) 
-        sys.stderr.write('BinaryDescriptor Object Image Size: {}x{}px\n'.format(h, w))
+        self.obj_bounding_box = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1,1,2)
+        self._print_debug_msg("Object Image Size: {}x{}px".format(h, w))
         
         # Get descriptors for object image
         self.detector = detector_init(**detector_params)
@@ -340,7 +367,6 @@ class BinaryDescriptor:
         
         # Setup matcher and parameters
         self.matcher = matcher_init(**matcher_params)
-        self.num_matches = num_matches
         
         # Set detected object to null
         self.detected_obj = None
@@ -350,20 +376,32 @@ class BinaryDescriptor:
         frame = self.preprocessor(frame)
         gray = grayscale(frame)
         ( keypoints, descriptors ) = self.detector.detectAndCompute(gray, None)
-        sys.stderr.write("BinaryDescriptor Detector ({} Alg) - # keypoints: {}\n".
+        self._print_debug_msg("Detector ({} Alg) - # keypoints: {}".
             format(type(self.detector).__name__.replace('xfeatures2d_',''), \
             len(keypoints)))
         return (keypoints, descriptors)
     
     # Method to determine a match from a set of descriptors against the object descriptors
     def _get_match(self, descriptors):
-        matches = self.matcher.knnMatch(self.obj_descriptors, descriptors, self.num_matches)
+        matches = self.matcher.knnMatch(self.obj_descriptors, descriptors, k=2)
+        # Obtain maximum and minimum distances
+        min_dist = 100.0
+        max_dist =   0.0
+        for m,n in matches:
+            distance = abs(m.distance - n.distance)
+            min_dist = distance if (distance < min_dist) else min_dist
+            max_dist = distance if (distance > max_dist) else max_dist
+        self._print_debug_msg("Matching ({0} Alg) - min: {1:0.3f}, max: {2:0.3f}".
+            format(type(self.matcher).__name__, \
+            min_dist, max_dist))
         # Apply ratio test to filter matches
+        min_dist = 0.5/3 if (min_dist < 0.5/3) else min_dist
         good_matches = []
         for m,n in matches:
-            if m.distance < 0.70*n.distance:
+            distance = abs(m.distance - n.distance)
+            if distance < 3*min_dist:
                 good_matches.append(m)
-        sys.stderr.write('BinaryDescriptor Matching ({} Alg) - # good matches: {}/{}\n'.
+        self._print_debug_msg("Matching ({} Alg) - # good matches: {}/{}".
             format(type(self.matcher).__name__, \
             len(good_matches), len(matches)))
         return good_matches
@@ -371,23 +409,26 @@ class BinaryDescriptor:
     def _get_transformation_matrix(self, keypoints, matches):
         obj   = np.float32([ self.obj_keypoints[ m.queryIdx ].pt for m in matches ]).reshape(-1,1,2)
         scene = np.float32([          keypoints[ m.trainIdx ].pt for m in matches ]).reshape(-1,1,2)
-        ( transformation_matrix, _ ) = cv2.findHomography( obj, scene, cv2.RANSAC, 10 )
-        sys.stderr.write('BinaryDescriptor Transform Matrix:\n{}\n'.format(transformation_matrix))
+        ( transformation_matrix, used_matches ) = cv2.findHomography( obj, scene, cv2.RANSAC, 5.0 )
+        self._print_debug_msg("Transform Matrix:\n{}".format(transformation_matrix))
+        if transformation_matrix is not None:
+            self._print_debug_msg("Homography Used Matches: {}/{}".format(len(used_matches), len(matches)))
         return transformation_matrix
     
     # Validate if match can construct a coherant transformation matrix
-    def _validate_match(self, transformation_matrix, matches):
+    def _validate_match(self, transformation_matrix):
         if transformation_matrix is None:
             return False
         variance = 0.000
-        sys.stderr.write('BinaryDescriptor Transform Matrix Variance: {}\n'.format(variance))
+        self._print_debug_msg("Transform Matrix Variance: {}".format(variance))
         # Return True if our accuracy threshold is met
         return variance < 0.2
                 
     # Apply transformation matrix to object image to compute border around object
     def _get_object_frame_from_transformation_matrix(self, transformation_matrix):
-        bounding_box = cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix)[0]
-        sys.stderr.write('BinaryDescriptor Object Frame:\n{}\n'.format(bounding_box))
+        bounding_box = np.int32(cv2.perspectiveTransform(self.obj_bounding_box, transformation_matrix))
+        bounding_box = [list(i[0]) for i in list(bounding_box)] # Re-format output
+        self._print_debug_msg("Object Frame:\n{}".format(bounding_box))
         return bounding_box
         
     # Run the match algorithm and return a bounding parallelagram if a valid match was found
@@ -401,7 +442,7 @@ class BinaryDescriptor:
             # Construct transformation matrix
             transformation_matrix = self._get_transformation_matrix(keypts, matches)
             # If valid match was found, compute transformation matrix
-            if self._validate_match(transformation_matrix, matches):
+            if self._validate_match(transformation_matrix):
                 self.detected_obj = \
                     self._get_object_frame_from_transformation_matrix(transformation_matrix)
         
