@@ -365,7 +365,6 @@ class BinaryDescriptor:
             cv2.xfeatures2d.SIFT_create()
             cv2.ORB_create()
             BRIEF_create()
-
         """
         self.detector = \
             cv2.xfeatures2d.SURF_create()
@@ -377,7 +376,8 @@ class BinaryDescriptor:
         # Setup matcher and parameters
         """
         Options Include:
-            cv2.FlannBasedMatcher(dict(algorithm=FLANN_INDEX_KDTREE, trees=5), dict(checks=50))
+            cv2.BFMatcher()
+            Doesn't work! cv2.FlannBasedMatcher(dict(algorithm=FLANN_INDEX_KDTREE, trees=5), dict(checks=50))
         """
         self.matcher = \
             cv2.BFMatcher()
