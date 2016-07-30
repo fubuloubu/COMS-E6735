@@ -12,7 +12,7 @@ from progress.bar import Bar
 def print_debug_msg(funcname="", msg=""):
     if funcname is not None:
         msg = (funcname + " " + msg)
-    sys.stderr.write("DEBUG: " + msg + "\n")
+    sys.stderr.write("{DEBUG} " + msg + "\n")
 
 # Flip video around
 def mirror(frame):
@@ -322,33 +322,31 @@ class Cascade:
             self.detected_obj = objects[0]
         return np.asmatrix(self.detected_obj).tolist()
 
-"""
-Detector used for identifying features
-Options Include:
-    cv2.xfeatures2d.SURF_create
-    cv2.ORB
-"""
-default_detector = \
-    cv2.xfeatures2d.SIFT_create
-default_detector_options = dict()
+# Helper class used for BRIEF Algorithm
+class BRIEF_create:
+    def __init__(self):
+        # Initiate STAR detector
+        self.star = cv2.xfeatures2d.StarDetector_create()
 
-"""
-Matcher used for identifying possible matches from feature sets
-Options Include:
-    cv2.FlannBasedMatcher
-"""
-default_matcher = \
-    cv2.BFMatcher
-default_matcher_options = dict()
+        # Initiate BRIEF extractor
+        self.brief = cv2.xfeatures2d.BriefDescriptorExtractor_create()
+    
+    def detectAndCompute(self, img, mask):
+        # find the keypoints with STAR
+        kp = self.star.detect(img, mask)
+
+        # compute the descriptors with BRIEF
+        kp, des = self.brief.compute(img, kp)
+        return (kp, des)
+
+FLANN_INDEX_KDTREE = 1
 
 # Helper class to try using a binary descriptor to find an object in frame
 class BinaryDescriptor:
     def _print_debug_msg(self, msg):
         print_debug_msg(self.__class__.__name__, msg)
 
-    def __init__(self, obj_image, preprocessor=gaussian,\
-            detector_init=default_detector, detector_params=default_detector_options,\
-            matcher_init=default_matcher, matcher_params=default_matcher_options):
+    def __init__(self, obj_image, preprocessor=gaussian):
         
         # Setup preprocessor
         self.preprocessor = preprocessor
@@ -361,13 +359,29 @@ class BinaryDescriptor:
         self._print_debug_msg("Object Image Size: {}x{}px".format(h, w))
         
         # Get descriptors for object image
-        self.detector = detector_init(**detector_params)
+        """
+        Options Include:
+            cv2.xfeatures2d.SURF_create()
+            cv2.xfeatures2d.SIFT_create()
+            cv2.ORB_create()
+            BRIEF_create()
+
+        """
+        self.detector = \
+            cv2.xfeatures2d.SURF_create()
+        
+        # Obtain keypoints and descriptors for object image
         ( self.obj_keypoints, self.obj_descriptors ) = \
             self._get_keypoints_descriptors(self.obj_image)
         
         # Setup matcher and parameters
-        self.matcher = matcher_init(**matcher_params)
-        
+        """
+        Options Include:
+            cv2.FlannBasedMatcher(dict(algorithm=FLANN_INDEX_KDTREE, trees=5), dict(checks=50))
+        """
+        self.matcher = \
+            cv2.BFMatcher()
+
         # Set detected object to null
         self.detected_obj = None
         
