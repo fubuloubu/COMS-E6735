@@ -1,4 +1,5 @@
-# video files (too large for github)
+# media files (too large for github)
+*.jpg
 *.mp4
 
 # Intermediates
