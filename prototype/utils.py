@@ -132,6 +132,18 @@ def edgedetect(frame, threshold1=50, threshold2=300, aperature_size=5):
     frame = grayscale(frame)
     return cv2.Canny(frame, threshold1, threshold2, aperature_size)
 
+# Detect circles of at least a specific radius in frame, return (x,y) of circle's center
+def circledetect(frame, preprocessor=adaptivethreshold, minDist=50, minRadius=10, maxRadius = 80):
+    frame = preprocessor(frame)
+    circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, dp=2, minDist=minDist,
+            param1=100, param2=100, minRadius=minRadius, maxRadius=maxRadius)
+    if circles is not None:
+        circles = list(map(lambda p: list(p), list(circles[0])))
+        print_debug_msg("circledetect", "Circles: {}".format(circles))
+        return circles
+    else:
+        return []
+
 # Detect lines in frame
 def linedetect(frame, preprocessor=adaptivethreshold, threshold=50, minLineLength=30, maxLineGap=5):
     frame = preprocessor(frame)
@@ -552,12 +564,19 @@ def addline(frame, line, color=defaultcolor):
 
 # Add a circle centered at specified point with the specified radius
 def addcircle(frame, point, radius=10, color=defaultcolor, fill=False):
-    if len(point) == 2:
+    print_debug_msg("addcircle()", "point: {}".format(point))
+    if len(point) == 3:
+        radius = point[2]
+        point = point[:2]
+    elif len(point) == 2:
         [x, y] = point
         if fill:
             cv2.circle(frame, (x, y), radius, color, cv2.cv.CV_FILLED, lineType)
         else:
             cv2.circle(frame, (x, y), radius, color, thickness, lineType)
+    else:
+        print_debug_msg("addcircle()", "No circles to add!")
+
     return frame
     
 # Add a rectangle or list of rectangles to the frame
