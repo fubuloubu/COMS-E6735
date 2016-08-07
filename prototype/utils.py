@@ -133,13 +133,13 @@ def edgedetect(frame, threshold1=50, threshold2=300, aperature_size=5):
     return cv2.Canny(frame, threshold1, threshold2, aperature_size)
 
 # Detect circles of at least a specific radius in frame, return (x,y) of circle's center
-def circledetect(frame, preprocessor=adaptivethreshold, minDist=50, minRadius=10, maxRadius = 80):
+def circledetect(frame, preprocessor=edgedetect, minDist=50, minRadius=10, maxRadius = 80):
     frame = preprocessor(frame)
     circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, dp=2, minDist=minDist,
             param1=100, param2=100, minRadius=minRadius, maxRadius=maxRadius)
     if circles is not None:
-        circles = list(map(lambda p: list(p), list(circles[0])))
-        print_debug_msg("circledetect", "Circles: {}".format(circles))
+        circles = list(map(lambda p: [int(round(x)) for x in p], circles[0]))
+        print_debug_msg("circledetect()", "Circles: {}".format(circles))
         return circles
     else:
         return []
@@ -538,15 +538,15 @@ def addtext(frame, text="Hello, world!", location="cc", color=defaultcolor):
     if location[0] == 'l':
         lines.reverse()
     coords = {
-        "ul" : (lambda sh, sw, bl, i: (  0     +bl,   0+sw+bl +linespace*i                  )),
-        "cl" : (lambda sh, sw, bl, i: (  0     +bl, h/2       +linespace*(i-(numlines-1)/2) )),
-        "ll" : (lambda sh, sw, bl, i: (  0     +bl,   h-sw-bl -linespace*i                  )),
-        "uc" : (lambda sh, sw, bl, i: (w/2-sh/2   ,   0+sw+bl +linespace*i                  )),
-        "cc" : (lambda sh, sw, bl, i: (w/2-sh/2   , h/2       +linespace*(i-(numlines-1)/2) )),
-        "lc" : (lambda sh, sw, bl, i: (w/2-sh/2   ,   h-sw-bl -linespace*i                  )),
-        "ur" : (lambda sh, sw, bl, i: (  w-sh  -bl,   0+sw+bl +linespace*i                  )),
-        "cr" : (lambda sh, sw, bl, i: (  w-sh  -bl, h/2       +linespace*(i-(numlines-1)/2) )),
-        "lr" : (lambda sh, sw, bl, i: (  w-sh  -bl,   h-sw-bl -linespace*i                  )),
+        "ul" : (lambda sh, sw, bl, i: (          bl,     sw+bl +linespace* i                 )),
+        "cl" : (lambda sh, sw, bl, i: (          bl, h/2       +linespace*(i-(numlines-1)/2) )),
+        "ll" : (lambda sh, sw, bl, i: (          bl, h  -sw-bl -linespace* i                 )),
+        "uc" : (lambda sh, sw, bl, i: ( w/2-sh/2   ,     sw+bl +linespace* i                 )),
+        "cc" : (lambda sh, sw, bl, i: ( w/2-sh/2   , h/2       +linespace*(i-(numlines-1)/2) )),
+        "lc" : (lambda sh, sw, bl, i: ( w/2-sh/2   , h  -sw-bl -linespace* i                 )),
+        "ur" : (lambda sh, sw, bl, i: ( w  -sh  -bl,     sw+bl +linespace* i                 )),
+        "cr" : (lambda sh, sw, bl, i: ( w  -sh  -bl, h/2       +linespace*(i-(numlines-1)/2) )),
+        "lr" : (lambda sh, sw, bl, i: ( w  -sh  -bl, h  -sw-bl -linespace* i                 )),
     }
     # For each line, grab line sizing information and add line to frame
     for i, line in enumerate(lines):
@@ -564,12 +564,12 @@ def addline(frame, line, color=defaultcolor):
 
 # Add a circle centered at specified point with the specified radius
 def addcircle(frame, point, radius=10, color=defaultcolor, fill=False):
-    print_debug_msg("addcircle()", "point: {}".format(point))
     if len(point) == 3:
         radius = point[2]
         point = point[:2]
-    elif len(point) == 2:
+    if len(point) == 2:
         [x, y] = point
+        #print_debug_msg("addcircle()", "adding circle {}".format(point))
         if fill:
             cv2.circle(frame, (x, y), radius, color, cv2.cv.CV_FILLED, lineType)
         else:
