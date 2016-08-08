@@ -1,15 +1,25 @@
-A review of the literature revealed unsurprisingly that a project concerning this topic is unprecedented.
-Similar systems exist that typically utilize pure audio recognition to identify arrangenents of notes with 
-a correctness approaching only about 85\%.
-These systems can typically only recognize events such as chords, due to the difficulty identifying individual sounds from an arrangement 
-\cite{chordify,riffstation}.
-Additionally, these systems are challenged by fast-pace music as slowing down the input waveform will change
-the central tone present (in reality, this is possible, but only by tracking the slowdown and filtering the noise).
+Several commercially-available systems\cite{chordify,riffstation} similar in end-use exist
+that use audio recognition in order to identify arrangenents of notes with moderate accuracy.
+These systems are challenged by fast-pace music as slowing down the input waveform will change
+the central tone present, and can have difficulty identifying individual notes when multiple
+tones are present, due to the techniques utilized for this purpose. Additionally, there is no
+easy way that these audio systems can accurately identify fretting positions, as there are
+multiple fretting locations corresponding to the same central tone available on a guitar.
+The fretting location can often be vital to correctly reproducing a piece, so this information
+is important to identify, especially for beginner guitarists looking to learn.
 \par
-
-A video system to identify notes would have the benefit that controlling the speed would not affect the
-ability to correctly identify musical events (within the recording speed limits of the video),
-although this means the system will be unable to identify the exact tone of that note without further tonal analysis.
-The system should find use in a amateur training scenario where it is often hard to identify the notes being played in a specific song, 
-or in a practice scenario where it might be useful to record the tabulature of a session
-instead of having to pain-stakingly review a practice session to identify a specific progression that was being played.
+A Computer Vision application to identify fretting locations would have the benefit that controlling
+the speed would not affect the ability to correctly identify musical events, and would also be
+able to easily identify the notes reproduced if the tuning of the guitar were provided.
+The system would find use in a amateur training scenario where it is often hard to identify the
+notes being played in a specific song, or in a practice scenario where it might be useful to record
+the tabulature of a session instead of having to pain-stakingly review audio or video recordings of
+a session in order to identify a specific progression that was being played.
+\par
+There exist no commercially viable systems utilizing Computer Vision capable of accurate note
+identification, either as the primary means or in concert with audio deconstruction techniques.
+A review of the literature revealed several attempts at systems of similar scope and ambition to
+the system described in this report\cite{GuitarTabulizer,CVFinger}. Such systems required a
+particular lighting and camera setup attached to the instrument that may preclude adoption.
+A more natural system that post-analyzes recorded video in a larger variety of context would
+be helpful to more widespread adoption of the system.
