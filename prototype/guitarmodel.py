@@ -127,7 +127,7 @@ def get_guitar(frame):
 # Get wireframe of guitar POI and present to user
 def main(frame):
     # Get the guitar's POI in the frame
-    guitar = get_guitar(frame)#locate.guitar(frame))
+    guitar = get_guitar( utils.crop( frame, locate.guitar(frame) ) )
     # Write status
     sys.stderr.write(errorstring.format(guitar))
     # Return overlaid guitar attributes on frame

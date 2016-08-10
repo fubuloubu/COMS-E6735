@@ -2,7 +2,7 @@
 from functools import reduce
 import sys
 import utils
-import locate
+import guitarmodel
 errorstring = '''
 handmodel.py: Stats
  Picking Hand Fingertip Locations: {}
@@ -41,10 +41,16 @@ def to_handmodel(hand_crop, direction='up'):
     return handmodel
 
 # Get the hand models for both hands
-def get_hands(frame, pickhand_coords, frethand_coords):
+def get_hands(frame, guitar):
+    # Compute pickhand and frethand crop using guitar model
+    scale = frame.shape[1]/1920.0
+    pickhand_coords = [[int(scale*i) for i in [   0,  520,  800, 1080]]] #DEBUG
+    frethand_coords = [[int(scale*i) for i in [ 800,  300, 1800,  900]]] #DEBUG
+
     # Interpret hand areas to get hand models for both hands
     pickhand = to_handmodel(utils.crop(frame, pickhand_coords), 'dn')
     frethand = to_handmodel(utils.crop(frame, frethand_coords), 'up')
+    
     # Uncrop hands to larger frame
     pickhand = map(lambda p: utils.reposition(p, pickhand_coords), pickhand)
     frethand = map(lambda p: utils.reposition(p, frethand_coords), frethand)
@@ -52,17 +58,15 @@ def get_hands(frame, pickhand_coords, frethand_coords):
 
 # Get digit wireframe of hand and present to user
 def main(frame):
-    # Locate pickhand and frethand
-    #TODO: Get this working
-    #(guitar_coords, pickhand_coords, frethand_coords) = \
-    #    locate.guitar_and_hands(frame)
-    scale = frame.shape[1]/1920.0
-    pickhand_coords = [[int(scale*i) for i in [   0,  520,  800, 1080]]] #DEBUG
-    frethand_coords = [[int(scale*i) for i in [ 800,  300, 1800,  900]]] #DEBUG
+    # Get the guitar model
+    guitar = guitarmodel.get_guitar(frame)
 
+    # Return unchanged frame if no guitar
+    if not guitar:
+        return frame
+    
     # Get the hands (list of fingertips) in the frame
-    (pickhand, frethand) = \
-        get_hands(frame, pickhand_coords, frethand_coords)
+    (pickhand, frethand) = get_hands(frame, guitar)
     
     # Print for debugging and testing purposes
     sys.stderr.write( errorstring.format(list(pickhand), list(frethand)) ) 

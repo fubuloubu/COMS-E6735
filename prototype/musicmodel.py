@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import utils
-import locate
 import handmodel
 import guitarmodel
 
@@ -12,7 +11,7 @@ def get_note(picking_hand, fretting_hand, guitar):
     if validnote:
         return note
     else:
-        return ['-','-','-','-','-','-']
+        return ['-','-','-','-']
 
 # Construct tablature from note occurances
 #TODO: Involve Beats per minute and Frames Per Second
@@ -21,14 +20,12 @@ global tablature
 tablature = []
 def add_to_tablature(frame):
     # Get the guitar's POI in the frame
-    (guitar_coords, pickhand_coords, frethand_coords) = \
-        locate.guitar_and_hands(frame)
-    guitar = guitarmodel.get_guitar(guitar_coords)
+    guitar = guitarmodel.get_guitar(frame)
     if not guitar:
         raise ValueError("No guitar!")
     # Get the hand models for both hands
     (pickhand, frethand) = \
-        handmodel.get_hands(frame, pickhand_coords, frethand_coords)
+        handmodel.get_hands(frame, guitar)
     if not pickhand or not frethand:
         raise ValueError("No hand(s)!")
     
