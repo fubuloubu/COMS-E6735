@@ -30,6 +30,17 @@ In contrast, the frets were not found to that same degree of precision and not i
 The obtained frets were usally 3-4 in number (24 was the desired quantity) and significantly exceeded the boundary
 of the guitar neck, as identified using string detection. This was verified by manual review of the overlaid
 frames.
+\par% From methodology
+These techniques prove fairly reliable in early trials, however lighting and orientation
+differences could lead to this algorithm to be somewhat fickle in identifying all of the frets.
+Since the guitar should not change scale in frame too much, and the range of orientation
+and lighting should be small, the idea was to continually estimate the location of each feature
+(string/fret) until a model is built that fully matches the expected number of strings and frets.
+This fully realized model could then be tracked for scale and orientation changes in order to
+accurately track where the guitar is moving during playing.
+The end product could leverage this by instructing a live user to move around their hands until
+the guitar model layer has successfully accomplished this, and inform the user when it is unable
+to track these quantities during operation.
 
 \subsection{Hand Modeling Stage}
 The hand modeling stage was met with moderate initial success. Fingertip points were identified in almost
