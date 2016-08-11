@@ -64,8 +64,8 @@ visible frets available for estimation.
 The remaining frets can be estimated using the following recursive formula for fret location $l_{fi}$ using a scale length $l_S$:
 \begin{equation}
     l_{fi} = \begin{cases}
-        \frac{l_S}{17.817},                         && \text{if $i = 1$.} \\
-        \frac{l_S - l_{fi-1}}{17.817} + l_{fi-1},   && \text{if $i > 1$.}
+        \frac{l_S}{17.817},                         & \text{if $i = 1$.} \\
+        \frac{l_S - l_{fi-1}}{17.817} + l_{fi-1},   & \text{if $i > 1$.}
     \end{cases}
 \end{equation}
 Knowing the location several frets can also help back-calculate the scale length (e.g. the entire length of the string) since
