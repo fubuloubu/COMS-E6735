@@ -20,3 +20,24 @@ Not much evidence of testing.  Overly ambitious evaluation plan.
 Final 1
 
 Small number of videos.  No real output (tablature, etc.).   Hand placement very errorful.
+
+Binary Descriptor matching
+ - easier for users
+ - rotation invariant
+ - susceptible to noise?
+ - very slow
+
+work on this
+one-shot learning
+go over this in a meeting
+
+Guitar model
+ - trouble finding full length of strings and all of frets
+ - estimation framework attempted
+ - use guitar location point model for hand location
+
+paper of recognition of rectangular objects
+
+Hand Model
+ - Skeletonization
+ - Estimation of joint location
